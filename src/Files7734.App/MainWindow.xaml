@@ -2,10 +2,35 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Files7734.App"
-        Title="7734 Files Checker" Height="820" Width="1320" MinWidth="820" MinHeight="520"
-        Icon="app.ico" Background="{StaticResource WindowBrush}" FontFamily="Segoe UI" FontSize="13"
+        Title="7734 Files Checker" Height="840" Width="1360" MinWidth="860" MinHeight="560"
+        Icon="app.ico" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen" UseLayoutRounding="True">
-    <Grid>
+    <Window.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#120E24" Offset="0"/>
+            <GradientStop Color="#1B1236" Offset="0.5"/>
+            <GradientStop Color="#0B1A2C" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Background>
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="58" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Grid x:Name="RootGrid">
+        <!-- Taches de couleur floues derrière le verre -->
+        <Canvas x:Name="Blobs" IsHitTestVisible="False" ClipToBounds="True">
+            <Ellipse x:Name="BlobA" Width="620" Height="520" Canvas.Left="-140" Canvas.Top="-160" Opacity="0.55">
+                <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#8B5CF6" Offset="0"/><GradientStop Color="#008B5CF6" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
+            </Ellipse>
+            <Ellipse x:Name="BlobB" Width="680" Height="560" Opacity="0.40">
+                <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#22D3EE" Offset="0"/><GradientStop Color="#0022D3EE" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
+            </Ellipse>
+            <Ellipse x:Name="BlobC" Width="560" Height="480" Opacity="0.38">
+                <Ellipse.Fill><RadialGradientBrush><GradientStop Color="#F472B6" Offset="0"/><GradientStop Color="#00F472B6" Offset="1"/></RadialGradientBrush></Ellipse.Fill>
+            </Ellipse>
+        </Canvas>
+
+        <Grid Margin="16,0,16,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -13,49 +38,51 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Barre du haut -->
-        <Border Grid.Row="0" Background="{StaticResource TopBarBrush}" Padding="16,12">
-            <DockPanel LastChildFill="True">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
-                    <Image Source="app.ico" Width="26" Height="26" Margin="0,0,10,0"/>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="7734 Files Checker" Foreground="{StaticResource TopBarTextBrush}" FontSize="16" FontWeight="Bold"/>
-                        <TextBlock Text="Analyseur d'espace disque" Foreground="#9B96B3" FontSize="11"/>
+        <!-- Barre de titre : on peut déplacer la fenêtre en la saisissant -->
+        <DockPanel Grid.Row="0" Height="66" LastChildFill="True">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,8,-6,0" WindowChrome.IsHitTestVisibleInChrome="True">
+                <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Réduire"/>
+                <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Agrandir"/>
+                <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fermer"/>
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,26,0">
+                <Image Source="app.ico" Width="30" Height="30" Margin="0,0,12,0"/>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="7734 Files Checker" FontSize="17" FontWeight="SemiBold"/>
+                    <TextBlock Text="Analyseur d'espace disque" Foreground="{StaticResource MutedBrush}" FontSize="11.5"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+                <ComboBox x:Name="DriveBox" Width="310" Margin="0,0,10,0" ToolTip="Disque à analyser"/>
+                <Button x:Name="ScanButton" Style="{StaticResource AccentButton}" Click="ScanButton_Click" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Scanner"/>
                     </StackPanel>
-                </StackPanel>
+                </Button>
+                <Button x:Name="FolderButton" Style="{StaticResource GlassButton}" Click="FolderButton_Click" Margin="0,0,10,0" ToolTip="Analyser un seul dossier">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock Text="Dossier…"/>
+                    </StackPanel>
+                </Button>
+                <Button x:Name="CancelButton" Style="{StaticResource GlassButton}" Click="CancelButton_Click" Visibility="Collapsed" Content="Annuler"/>
+            </StackPanel>
 
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
-                    <ComboBox x:Name="DriveBox" Width="290" Height="32" VerticalContentAlignment="Center" Margin="0,0,8,0"
-                              ToolTip="Disque à analyser"/>
-                    <Button x:Name="ScanButton" Style="{StaticResource AccentButton}" Click="ScanButton_Click" Margin="0,0,8,0">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="Scanner"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="FolderButton" Style="{StaticResource GhostButton}" Click="FolderButton_Click" Margin="0,0,8,0"
-                            ToolTip="Analyser un seul dossier">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                            <TextBlock Text="Dossier…"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="CancelButton" Style="{StaticResource GhostButton}" Click="CancelButton_Click" Visibility="Collapsed" Content="Annuler"/>
-                </StackPanel>
-
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Width="320">
-                    <TextBlock x:Name="ProgressText" Foreground="#C9C5DB" FontSize="12" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
-                    <ProgressBar x:Name="Progress" Height="4" Margin="0,6,0,0" Minimum="0" Maximum="1" Visibility="Collapsed"
-                                 Foreground="{StaticResource AccentSoftBrush}" Background="#2A2638" BorderThickness="0"/>
-                </StackPanel>
-            </DockPanel>
-        </Border>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right" Width="300" Margin="0,0,16,0">
+                <TextBlock x:Name="ProgressText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
+                <ProgressBar x:Name="Progress" Margin="0,7,0,0" Minimum="0" Maximum="1" Visibility="Collapsed"/>
+            </StackPanel>
+        </DockPanel>
 
         <!-- Bandeau : pas de droits admin -->
-        <Border Grid.Row="1" x:Name="AdminBanner" Background="{StaticResource WarningBrush}" Padding="16,8" Visibility="Collapsed">
+        <Border Grid.Row="1" x:Name="AdminBanner" Background="#26F59E0B" BorderBrush="#66FBBF24" BorderThickness="1" CornerRadius="16"
+                Padding="16,8,8,8" Margin="0,0,0,8" Visibility="Collapsed">
             <DockPanel>
-                <Button DockPanel.Dock="Right" Style="{StaticResource LightButton}" Click="RestartAdmin_Click" Content="Relancer en administrateur"/>
-                <TextBlock VerticalAlignment="Center" Foreground="{StaticResource WarningTextBrush}" TextWrapping="Wrap">
+                <Button DockPanel.Dock="Right" Style="{StaticResource GlassButton}" Padding="12,5" Click="RestartAdmin_Click" Content="Relancer en administrateur"/>
+                <TextBlock VerticalAlignment="Center" Foreground="#FDE68A" TextWrapping="Wrap">
                     <Run FontWeight="SemiBold">Mode classique.</Run>
                     <Run x:Name="AdminBannerText">Sans les droits administrateur, le scan est plus lent. Relance l'app en administrateur pour un scan en quelques secondes.</Run>
                 </TextBlock>
@@ -63,21 +90,21 @@
         </Border>
 
         <!-- Contenu -->
-        <Grid Grid.Row="2" Margin="12,12,12,0">
+        <Grid Grid.Row="2" Margin="0,6,0,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="5*" MinHeight="140"/>
-                <RowDefinition Height="10"/>
+                <RowDefinition Height="14"/>
                 <RowDefinition Height="4*" MinHeight="120"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="3*" MinWidth="300"/>
-                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="14"/>
                 <ColumnDefinition Width="2*" MinWidth="260"/>
             </Grid.ColumnDefinitions>
 
             <!-- Arborescence -->
-            <Border Grid.Row="0" Grid.Column="0" Background="{StaticResource SurfaceBrush}" CornerRadius="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                <ListView x:Name="TreeList" Margin="1" SelectionMode="Single" SelectionChanged="TreeList_SelectionChanged"
+            <ContentControl Grid.Row="0" Grid.Column="0" Style="{StaticResource GlassCard}" Padding="2,4,2,8">
+                <ListView x:Name="TreeList" SelectionMode="Single" SelectionChanged="TreeList_SelectionChanged"
                           KeyDown="TreeList_KeyDown" MouseDoubleClick="TreeList_MouseDoubleClick" ContextMenuOpening="List_ContextMenuOpening">
                     <ListView.ContextMenu><ContextMenu/></ListView.ContextMenu>
                     <ListView.View>
@@ -104,8 +131,8 @@
                                 <GridViewColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Width="56" Height="8" Background="#EEEBF5" CornerRadius="4" VerticalAlignment="Center">
-                                                <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{StaticResource AccentBrush}" CornerRadius="4"/>
+                                            <Border Width="56" Height="8" Background="{StaticResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
+                                                <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{StaticResource AccentGradient}" CornerRadius="4"/>
                                             </Border>
                                             <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
                                         </StackPanel>
@@ -135,13 +162,13 @@
                         </GridView>
                     </ListView.View>
                 </ListView>
-            </Border>
+            </ContentControl>
 
-            <GridSplitter Grid.Row="0" Grid.Column="1" Width="10" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+            <GridSplitter Grid.Row="0" Grid.Column="1" Width="14" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
 
             <!-- Onglets : extensions et plus gros fichiers -->
-            <Border Grid.Row="0" Grid.Column="2" Background="{StaticResource SurfaceBrush}" CornerRadius="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                <TabControl BorderThickness="0" Background="Transparent" Padding="0" Margin="4,2,4,4">
+            <ContentControl Grid.Row="0" Grid.Column="2" Style="{StaticResource GlassCard}" Padding="2,0,2,8">
+                <TabControl>
                     <TabItem Header="Types de fichiers">
                         <ListView x:Name="ExtList" SelectionMode="Single">
                             <ListView.View>
@@ -165,7 +192,7 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Border Width="56" Height="8" Background="#EEEBF5" CornerRadius="4" VerticalAlignment="Center">
+                                                    <Border Width="56" Height="8" Background="{StaticResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
                                                         <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{Binding Swatch}" CornerRadius="4"/>
                                                     </Border>
                                                     <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
@@ -218,37 +245,38 @@
                         </ListView>
                     </TabItem>
                 </TabControl>
-            </Border>
+            </ContentControl>
 
-            <GridSplitter Grid.Row="1" Grid.ColumnSpan="3" Height="10" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+            <GridSplitter Grid.Row="1" Grid.ColumnSpan="3" Height="14" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
 
             <!-- Carte -->
-            <Border Grid.Row="2" Grid.ColumnSpan="3" CornerRadius="8" Background="#1B1A22" ClipToBounds="True">
+            <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource GlassCard}" Padding="10">
                 <DockPanel>
-                    <DockPanel DockPanel.Dock="Top" Background="#221F2C">
-                        <Button DockPanel.Dock="Right" x:Name="UpButton" Style="{StaticResource GhostButton}" Padding="10,3" Margin="6,5"
+                    <DockPanel DockPanel.Dock="Top" Margin="6,0,0,8">
+                        <Button DockPanel.Dock="Right" x:Name="UpButton" Style="{StaticResource GlassButton}" Padding="12,5"
                                 Click="UpButton_Click" IsEnabled="False" ToolTip="Revenir au dossier parent">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE74A;" FontFamily="{StaticResource IconFont}" FontSize="11" VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="Dossier parent" FontSize="12"/>
                             </StackPanel>
                         </Button>
-                        <TextBlock x:Name="MapTitle" Foreground="#C9C5DB" VerticalAlignment="Center" Margin="12,0" FontSize="12"
+                        <TextBlock x:Name="MapTitle" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" FontSize="12.5"
                                    TextTrimming="CharacterEllipsis" Text="Carte du disque"/>
                     </DockPanel>
-                    <local:TreemapView x:Name="Map"/>
+                    <Border CornerRadius="12" x:Name="MapClip" ClipToBounds="True">
+                        <local:TreemapView x:Name="Map"/>
+                    </Border>
                 </DockPanel>
-            </Border>
+            </ContentControl>
         </Grid>
 
         <!-- Barre d'état -->
-        <Border Grid.Row="3" Padding="16,8">
-            <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource MutedBrush}" FontSize="12"
-                           Text="Double-clic sur la carte : zoomer · Clic droit : actions"/>
-                <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"
-                           Text="Choisis un disque puis clique sur Scanner."/>
-            </DockPanel>
-        </Border>
+        <DockPanel Grid.Row="3" Margin="6,12,6,0">
+            <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource FaintBrush}" FontSize="12"
+                       Text="Double-clic sur la carte : zoomer · Clic droit : actions"/>
+            <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="12" TextTrimming="CharacterEllipsis"
+                       Text="Choisis un disque puis clique sur Scanner."/>
+        </DockPanel>
+        </Grid>
     </Grid>
 </Window>

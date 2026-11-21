@@ -48,11 +48,38 @@ public partial class MainWindow : Window
         };
 
         LoadDrives();
+        SourceInitialized += (_, _) => GlassEffect.Apply(this);
+        StateChanged += (_, _) => UpdateWindowState();
+        SizeChanged += (_, _) => PlaceBlobs();
 
         // Un chemin passé en argument (ex. glisser un dossier sur l'exe) est analysé directement.
         var args = Environment.GetCommandLineArgs();
         if (args.Length > 1 && Directory.Exists(args[1]))
             Loaded += (_, _) => StartScan(args[1]);
+    }
+
+    // ───────────── Fenêtre ─────────────
+
+    private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+    private void Maximize_Click(object sender, RoutedEventArgs e) =>
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+    private void UpdateWindowState()
+    {
+        // Une fenêtre sans bordure agrandie déborde un peu de l'écran : on compense.
+        RootGrid.Margin = WindowState == WindowState.Maximized ? new Thickness(7) : new Thickness(0);
+        MaxButton.Content = WindowState == WindowState.Maximized ? "\uE923" : "\uE922";
+        MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Restaurer" : "Agrandir";
+    }
+
+    private void PlaceBlobs()
+    {
+        double w = ActualWidth, h = ActualHeight;
+        Canvas.SetLeft(BlobB, w - BlobB.Width * 0.7);
+        Canvas.SetTop(BlobB, h - BlobB.Height * 0.75);
+        Canvas.SetLeft(BlobC, w * 0.45);
+        Canvas.SetTop(BlobC, h * 0.18);
     }
 
     // ───────────── Disques ─────────────

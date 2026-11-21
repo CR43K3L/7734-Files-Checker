@@ -40,7 +40,7 @@ public sealed class TreemapView : Grid
 
     public TreemapView()
     {
-        Background = new SolidColorBrush(Color.FromRgb(0x1B, 0x1A, 0x22));
+        Background = new SolidColorBrush(Color.FromArgb(0x59, 0x0B, 0x09, 0x16));
         ClipToBounds = true;
         Children.Add(_image);
         Children.Add(_empty);
@@ -54,8 +54,10 @@ public sealed class TreemapView : Grid
         tipPanel.Children.Add(_tipText);
         _tip = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(235, 0x17, 0x15, 0x1F)),
-            CornerRadius = new CornerRadius(6),
+            Background = new SolidColorBrush(Color.FromArgb(240, 0x1C, 0x17, 0x33)),
+            BorderBrush = (Brush)Application.Current.FindResource("GlassEdge"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(12),
             Padding = new Thickness(10, 7, 10, 7),
             Child = tipPanel,
             Visibility = Visibility.Collapsed,
@@ -139,7 +141,7 @@ public sealed class TreemapView : Grid
     private static int[] Paint(List<TreemapRect> rects, int w, int h)
     {
         var px = new int[w * h];
-        Array.Fill(px, unchecked((int)0xFF1B1A22));
+        // fond transparent : le verre reste visible entre les rectangles
         foreach (var r in rects)
         {
             int x0 = Math.Max(0, (int)r.X), y0 = Math.Max(0, (int)r.Y);
@@ -149,8 +151,8 @@ public sealed class TreemapView : Grid
             if (!r.IsLeaf)
             {
                 // Fond d'un dossier : visible à travers les marges entre ses enfants.
-                int shade = Math.Max(0x16, 0x34 - r.Depth * 4);
-                int c = unchecked((int)(0xFF000000 | (uint)(shade << 16) | (uint)((shade - 2) << 8) | (uint)(shade + 10)));
+                int shade = Math.Max(0x10, 0x2C - r.Depth * 4);
+                int c = unchecked((int)(0xA0000000 | (uint)(shade << 16) | (uint)((shade - 4) << 8) | (uint)(shade + 16)));
                 for (int y = y0; y < y1; y++) Array.Fill(px, c, y * w + x0, x1 - x0);
                 continue;
             }
