@@ -43,6 +43,8 @@ public static class ExtensionColors
         return Muted[(h & 0x7FFFFFFF) % Muted.Length];
     }
 
+    public static uint ColorOf(FsNode node) => node.IsDirectory ? FolderColor : ColorFor(node.Extension);
+
     public static SolidColorBrush BrushFor(string extension) => BrushOf(ColorFor(extension));
 
     public static SolidColorBrush BrushOf(uint argb)

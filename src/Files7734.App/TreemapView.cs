@@ -32,7 +32,9 @@ public sealed class TreemapView : Grid
     };
     private readonly DispatcherTimer _resizeTimer;
 
+    private readonly LabelLayer _labels = new() { IsHitTestVisible = false };
     private List<TreemapRect> _rects = new();
+    private FsNode? _freeNode;
     private double _scaleX = 1, _scaleY = 1;
     private int _version;
     private FsNode? _root;
@@ -43,6 +45,7 @@ public sealed class TreemapView : Grid
         Background = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF7));
         ClipToBounds = true;
         Children.Add(_image);
+        Children.Add(_labels);
         Children.Add(_empty);
         Children.Add(_overlay);
         _overlay.Children.Add(_hover);
@@ -93,6 +96,15 @@ public sealed class TreemapView : Grid
         }
     }
 
+    /// <summary>La carte représente l'espace réellement occupé sur le disque plutôt que la taille des fichiers.</summary>
+    public bool UseAllocated { get; set; }
+
+    /// <summary>Affiche les noms sur les rectangles assez grands.</summary>
+    public bool ShowNames { get; set; } = true;
+
+    /// <summary>Si renseigné, un bloc « Espace libre » de cette taille est ajouté à la carte.</summary>
+    public long? FreeSpaceBytes { get; set; }
+
     public FsNode? Selected
     {
         get => _selected;
@@ -113,6 +125,7 @@ public sealed class TreemapView : Grid
         {
             _image.Source = null;
             _rects = new();
+            _labels.Update(null, 1, 1, 1);
             UpdateSelection();
             return;
         }
@@ -121,9 +134,12 @@ public sealed class TreemapView : Grid
         int pw = Math.Max(1, (int)Math.Round(ActualWidth * dpi.DpiScaleX));
         int ph = Math.Max(1, (int)Math.Round(ActualHeight * dpi.DpiScaleY));
 
+        bool useAllocated = UseAllocated;
+        FsNode? freeNode = null;
+        var layoutRoot = FreeSpaceBytes is long free && free > 0 ? FsTree.CreateFreeSpaceView(root, free, out freeNode) : root;
         var (pixels, rects) = await Task.Run(() =>
         {
-            var r = TreemapLayout.Layout(root, pw, ph);
+            var r = TreemapLayout.Layout(layoutRoot, pw, ph, useAllocated: useAllocated);
             return (Paint(r, pw, ph), r);
         });
         if (version != _version) return; // un rendu plus récent a été demandé entre-temps
@@ -133,8 +149,10 @@ public sealed class TreemapView : Grid
         bmp.Freeze();
         _image.Source = bmp;
         _rects = rects;
+        _freeNode = freeNode;
         _scaleX = dpi.DpiScaleX;
         _scaleY = dpi.DpiScaleY;
+        _labels.Update(ShowNames ? rects : null, _scaleX, _scaleY, dpi.PixelsPerDip);
         _hover.Visibility = Visibility.Collapsed;
         UpdateSelection();
     }
@@ -161,7 +179,15 @@ public sealed class TreemapView : Grid
             // Un pixel d'espace à droite et en bas sépare les rectangles voisins.
             if (x1 - x0 >= 3) x1--;
             if (y1 - y0 >= 3) y1--;
-            uint baseColor = r.Node.IsDirectory ? ExtensionColors.FolderColor : ExtensionColors.ColorFor(r.Node.Extension);
+            if (r.Node.IsVirtual)
+            {
+                // Espace libre : hachures grises discrètes.
+                for (int y = y0; y < y1; y++)
+                    for (int x = x0; x < x1; x++)
+                        px[y * w + x] = ((x + y) / 6 % 2 == 0) ? unchecked((int)0xFFEDEDF0) : unchecked((int)0xFFE2E2E7);
+                continue;
+            }
+            uint baseColor = ExtensionColors.ColorOf(r.Node);
             int br = (int)((baseColor >> 16) & 0xFF), bg = (int)((baseColor >> 8) & 0xFF), bb = (int)(baseColor & 0xFF);
             double rw = Math.Max(1, x1 - x0), rh = Math.Max(1, y1 - y0);
 
@@ -186,7 +212,11 @@ public sealed class TreemapView : Grid
     {
         double x = p.X * _scaleX, y = p.Y * _scaleY;
         for (int i = _rects.Count - 1; i >= 0; i--)
-            if (_rects[i].Contains(x, y)) return _rects[i].Node;
+        {
+            if (!_rects[i].Contains(x, y)) continue;
+            var n = _rects[i].Node;
+            return n.IsVirtual && n != _freeNode ? null : n;
+        }
         return null;
     }
 
@@ -240,6 +270,15 @@ public sealed class TreemapView : Grid
             return;
         }
         Place(_hover, rect);
+        if (node == _freeNode)
+        {
+            _tipTitle.Text = "Espace libre";
+            _tipText.Text = ByteSize.Format(node.Size);
+            _tip.Visibility = Visibility.Visible;
+            Canvas.SetLeft(_tip, Math.Min(p.X + 16, Math.Max(0, ActualWidth - 160)));
+            Canvas.SetTop(_tip, Math.Min(p.Y + 18, Math.Max(0, ActualHeight - 60)));
+            return;
+        }
 
         _tipTitle.Text = node.Name;
         string detail = node.IsDirectory ? $"Dossier · {Fmt.Count(node.FileCount)} fichiers" : (node.Extension.Length > 0 ? $"Fichier {node.Extension}" : "Fichier");
@@ -257,7 +296,7 @@ public sealed class TreemapView : Grid
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
         var node = HitTest(e.GetPosition(this));
-        if (node == null) return;
+        if (node == null || node.IsVirtual) return;
         if (e.ClickCount == 2) NodeDoubleClicked?.Invoke(node);
         else NodeClicked?.Invoke(node);
     }
@@ -265,6 +304,81 @@ public sealed class TreemapView : Grid
     private void OnRightClick(object sender, MouseButtonEventArgs e)
     {
         var node = HitTest(e.GetPosition(this));
-        if (node != null) NodeRightClicked?.Invoke(node);
+        if (node != null && !node.IsVirtual) NodeRightClicked?.Invoke(node);
+    }
+
+    /// <summary>Enregistre la carte (avec les noms) dans une image PNG.</summary>
+    public void SaveAsPng(string path)
+    {
+        var dpi = VisualTreeHelper.GetDpi(this);
+        int pw = Math.Max(1, (int)Math.Round(ActualWidth * dpi.DpiScaleX));
+        int ph = Math.Max(1, (int)Math.Round(ActualHeight * dpi.DpiScaleY));
+        var rtb = new RenderTargetBitmap(pw, ph, 96 * dpi.DpiScaleX, 96 * dpi.DpiScaleY, PixelFormats.Pbgra32);
+        var visual = new DrawingVisual();
+        using (var dc = visual.RenderOpen())
+        {
+            dc.DrawRectangle(Background, null, new Rect(0, 0, ActualWidth, ActualHeight));
+            if (_image.Source != null) dc.DrawImage(_image.Source, new Rect(0, 0, ActualWidth, ActualHeight));
+        }
+        rtb.Render(visual);
+        rtb.Render(_labels);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(rtb));
+        using var fs = System.IO.File.Create(path);
+        encoder.Save(fs);
+    }
+
+    /// <summary>Dessine les noms des plus grands rectangles par-dessus la carte.</summary>
+    private sealed class LabelLayer : FrameworkElement
+    {
+        private static readonly Typeface Face = new(new FontFamily("Segoe UI Variable Text, Segoe UI"), FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal);
+        private List<(Rect rect, string text, bool dark)> _items = new();
+        private double _ppd = 1;
+
+        public void Update(List<TreemapRect>? rects, double sx, double sy, double pixelsPerDip)
+        {
+            _ppd = pixelsPerDip;
+            _items = new();
+            if (rects != null)
+            {
+                var big = rects.Where(r => r.IsLeaf && !r.Node.IsVirtual && r.W / sx >= 58 && r.H / sy >= 17)
+                               .OrderByDescending(r => r.W * r.H).Take(350);
+                foreach (var r in big)
+                {
+                    uint c = ExtensionColors.ColorOf(r.Node);
+                    double lum = 0.299 * ((c >> 16) & 0xFF) + 0.587 * ((c >> 8) & 0xFF) + 0.114 * (c & 0xFF);
+                    _items.Add((new Rect(r.X / sx, r.Y / sy, r.W / sx, r.H / sy), r.Node.Name, lum > 170));
+                }
+                var free = rects.FirstOrDefault(r => r.Node.IsVirtual && r.Depth == 1);
+                if (free.Node != null && free.W / sx >= 80 && free.H / sy >= 17)
+                    _items.Add((new Rect(free.X / sx, free.Y / sy, free.W / sx, free.H / sy), "Espace libre · " + ByteSize.Format(free.Node.Size), true));
+            }
+            InvalidateVisual();
+        }
+
+        protected override void OnRender(DrawingContext dc)
+        {
+            var white = Brushes.White;
+            var dark = new SolidColorBrush(Color.FromRgb(0x1D, 0x1D, 0x1F));
+            var shadow = new SolidColorBrush(Color.FromArgb(0x59, 0, 0, 0));
+            foreach (var (rect, text, isDark) in _items)
+            {
+                var ft = new FormattedText(text, System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face, 11, isDark ? dark : white, _ppd)
+                {
+                    MaxTextWidth = Math.Max(1, rect.Width - 10),
+                    MaxLineCount = 1,
+                    Trimming = TextTrimming.CharacterEllipsis,
+                };
+                dc.PushClip(new RectangleGeometry(rect));
+                if (!isDark)
+                {
+                    var sft = new FormattedText(text, System.Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, Face, 11, shadow, _ppd)
+                    { MaxTextWidth = ft.MaxTextWidth, MaxLineCount = 1, Trimming = TextTrimming.CharacterEllipsis };
+                    dc.DrawText(sft, new Point(rect.X + 5, rect.Y + 3.8));
+                }
+                dc.DrawText(ft, new Point(rect.X + 5, rect.Y + 3));
+                dc.Pop();
+            }
+        }
     }
 }

@@ -11,10 +11,11 @@ public static class TreemapLayout
 {
     /// <param name="minDirSize">En dessous de cette largeur/hauteur (en pixels), un dossier n'est plus subdivisé.</param>
     /// <returns>Les rectangles en ordre "parent avant enfants" : le dernier qui contient un point est le plus profond.</returns>
-    public static List<TreemapRect> Layout(FsNode root, double width, double height, double minDirSize = 4)
+    public static List<TreemapRect> Layout(FsNode root, double width, double height, double minDirSize = 4, bool useAllocated = false)
     {
         var result = new List<TreemapRect>();
-        if (width < 1 || height < 1 || root.Size <= 0) return result;
+        long SizeOf(FsNode n) => useAllocated ? n.Allocated : n.Size;
+        if (width < 1 || height < 1 || SizeOf(root) <= 0) return result;
 
         var stack = new Stack<(FsNode node, double x, double y, double w, double h, int depth)>();
         stack.Push((root, 0, 0, width, height, 0));
@@ -24,19 +25,20 @@ public static class TreemapLayout
         while (stack.Count > 0)
         {
             var (node, x, y, w, h, depth) = stack.Pop();
-            bool subdivide = node.IsDirectory && node.Children is { Count: > 0 } && w >= minDirSize && h >= minDirSize && node.Size > 0;
+            bool subdivide = node.IsDirectory && node.Children is { Count: > 0 } && w >= minDirSize && h >= minDirSize && SizeOf(node) > 0;
             result.Add(new TreemapRect(node, (float)x, (float)y, (float)w, (float)h, depth, !subdivide));
             if (!subdivide) continue;
 
             // Une marge d'un pixel laisse apparaître la limite du dossier.
             if (w > 8 && h > 8 && depth > 0) { x += 1; y += 1; w -= 2; h -= 2; }
 
-            double scale = w * h / node.Size;
+            double scale = w * h / SizeOf(node);
             items.Clear();
             foreach (var c in node.Children!)
             {
-                if (c.Size <= 0) continue;
-                items.Add((c, c.Size * scale));
+                long cs = SizeOf(c);
+                if (cs <= 0) continue;
+                items.Add((c, cs * scale));
             }
             items.Sort(static (a, b) => b.area.CompareTo(a.area));
 

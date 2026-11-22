@@ -11,6 +11,9 @@ namespace Files7734.App;
 
 public partial class MainWindow : Window
 {
+    private Action? _lastScan;
+    private long? _driveFree;
+    private bool _loadingDrives;
     private readonly BulkObservableCollection<TreeRow> _rows = new();
     private readonly DispatcherTimer _progressTimer = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private readonly bool _elevated;
@@ -54,10 +57,16 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => GlassEffect.Apply(this);
         StateChanged += (_, _) => UpdateWindowState();
 
-        // Un chemin passé en argument (ex. glisser un dossier sur l'exe) est analysé directement.
+        InitFeatures();
+
+        // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.
         var args = Environment.GetCommandLineArgs();
-        if (args.Length > 1 && Directory.Exists(args[1]))
-            Loaded += (_, _) => StartScan(args[1]);
+        if (args.Length > 1)
+        {
+            string arg = args[1].Trim().Trim('"');
+            if (arg.Length == 2 && arg[1] == ':') arg += "\\";
+            if (Directory.Exists(arg)) Loaded += (_, _) => StartScan(arg);
+        }
     }
 
     // ───────────── Fenêtre ─────────────
@@ -94,8 +103,13 @@ public partial class MainWindow : Window
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
+        string? previous = (DriveList.SelectedItem as DriveItem)?.Root;
+        _loadingDrives = true;
         DriveList.ItemsSource = items;
-        DriveList.SelectedIndex = Math.Max(0, items.FindIndex(i => i.Root.StartsWith("C", StringComparison.OrdinalIgnoreCase)));
+        int index = previous != null ? items.FindIndex(i => i.Root == previous) : -1;
+        if (index < 0) index = Math.Max(0, items.FindIndex(i => i.Root.StartsWith("C", StringComparison.OrdinalIgnoreCase)));
+        DriveList.SelectedIndex = index;
+        _loadingDrives = false;
     }
 
     private void ScanButton_Click(object sender, RoutedEventArgs e)
@@ -110,7 +124,13 @@ public partial class MainWindow : Window
 
     private void DriveList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_result == null && DriveList.SelectedItem is DriveItem d)
+        if (_loadingDrives || DriveList.SelectedItem is not DriveItem d) return;
+        if (_settings.AutoScanOnSelect && _loaded && !_progressTimer.IsEnabled)
+        {
+            StartScan(d.Root);
+            return;
+        }
+        if (_result == null)
         {
             HeaderTitle.Text = $"{d.Letter} {d.Label}";
             HeaderSub.Text = d.UsageText;
@@ -132,8 +152,12 @@ public partial class MainWindow : Window
 
     // ───────────── Scan ─────────────
 
-    private async void StartScan(string path)
+    private void StartScan(string path) =>
+        RunScan(path, (status, ct) => DiskScanner.Scan(path, false, status, ct));
+
+    private async void RunScan(string path, Func<ScanStatus, CancellationToken, ScanResult> work)
     {
+        _lastScan = () => RunScan(path, work);
         _cts?.Cancel();
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
@@ -147,6 +171,9 @@ public partial class MainWindow : Window
         TopList.ItemsSource = null;
         Map.Root = null;
         Map.Selected = null;
+        Map.FreeSpaceBytes = null;
+        DriveStats.Visibility = Visibility.Collapsed;
+        _driveFree = null;
         MapTitle.Text = "Carte du disque";
         UpButton.IsEnabled = false;
 
@@ -158,7 +185,7 @@ public partial class MainWindow : Window
 
         try
         {
-            var result = await Task.Run(() => DiskScanner.Scan(path, false, status, ct), ct);
+            var result = await Task.Run(() => work(status, ct), ct);
             ProgressText.Text = "Calcul des statistiques…";
             var root = result.Root;
             var (exts, top) = await Task.Run(() => (Analysis.ByExtension(root), Analysis.LargestFiles(root, 1000)), ct);
@@ -180,6 +207,9 @@ public partial class MainWindow : Window
                               $"{ByteSize.Format(root.Size)} · {Fmt.Count(root.FileCount)} fichiers · {Fmt.Count(root.FolderCount)} dossiers{errors}";
 
             HeaderTitle.Text = root.FullPath;
+            UpdateDriveStats(root);
+            SearchTab.Visibility = Visibility.Collapsed;
+            SearchList.ItemsSource = null;
             HeaderSub.Text = $"{ByteSize.Format(root.Size)} · {Fmt.Count(root.FileCount)} fichiers · analysé en {result.Elapsed.TotalSeconds.ToString("0.0", Fmt.Fr)} s";
 
             if (result.Method != ScanMethod.Mft && result.FallbackReason != null && _elevated)
@@ -265,8 +295,6 @@ public partial class MainWindow : Window
                 row.IsExpanded = false; e.Handled = true; break;
             case Key.Left when row.Node.Parent != null:
                 RevealInTree(row.Node.Parent, zoomMap: true); e.Handled = true; break;
-            case Key.Delete:
-                Delete(row.Node); e.Handled = true; break;
         }
     }
 
@@ -277,7 +305,7 @@ public partial class MainWindow : Window
 
     private void TopList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (TopList.SelectedItem is FileRow f) RevealInTree(f.Node, zoomMap: true);
+        if (sender is ListView { SelectedItem: FileRow f }) RevealInTree(f.Node, zoomMap: true);
     }
 
     /// <summary>Déplie l'arborescence jusqu'à l'élément, le sélectionne et le fait défiler à l'écran.</summary>
@@ -324,6 +352,7 @@ public partial class MainWindow : Window
 
     private void SetMapRoot(FsNode dir)
     {
+        Map.FreeSpaceBytes = _settings.MapShowFreeSpace && _result != null && dir == _result.Root ? _driveFree : null;
         Map.Root = dir;
         MapTitle.Text = $"{dir.FullPath}  ·  {ByteSize.Format(dir.Size)}";
         UpButton.IsEnabled = _result != null && dir != _result.Root && dir.Parent != null;
@@ -346,6 +375,7 @@ public partial class MainWindow : Window
             FileRow f => f.Node,
             _ => null,
         };
+        if (node?.IsVirtual == true) { e.Handled = true; return; }
         if (node == null) { e.Handled = true; return; }
         BuildMenu(node, list.ContextMenu ??= new ContextMenu());
     }
@@ -376,25 +406,45 @@ public partial class MainWindow : Window
         Add("", "Copier le chemin", () => Clipboard.SetText(path));
         if (node.IsDirectory) Add("", "Analyser ce dossier seul", () => StartScan(path));
         menu.Items.Add(new Separator());
-        Add("", "Envoyer à la corbeille…", () => Delete(node), enabled: node.Parent != null);
+        Add("", "Copier", () => CopyToClipboard(node, cut: false));
+        Add("", "Couper", () => CopyToClipboard(node, cut: true));
+        Add("", "Renommer…", () => Rename(node), enabled: node.Parent != null && !node.IsVirtual);
+        menu.Items.Add(new Separator());
+        Add("", "Envoyer à la corbeille…", () => Delete(node), enabled: node.Parent != null && !node.IsVirtual);
+        Add("", "Supprimer définitivement…", () => Delete(node, permanent: true), enabled: node.Parent != null && !node.IsVirtual);
         return menu;
     }
 
-    private void Delete(FsNode node)
+    private void Delete(FsNode node, bool permanent = false)
     {
-        if (node.Parent == null || _result == null) return;
+        if (node.Parent == null || _result == null || node.IsVirtual) return;
         string path = node.FullPath;
         string what = node.IsDirectory
             ? $"le dossier « {node.Name} » ({ByteSize.Format(node.Size)}, {Fmt.Count(node.FileCount)} fichiers)"
             : $"le fichier « {node.Name} » ({ByteSize.Format(node.Size)})";
-        var answer = MessageBox.Show(this, $"Envoyer {what} à la corbeille ?\n\n{path}", "Envoyer à la corbeille",
-            MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+        var answer = permanent
+            ? MessageBox.Show(this, $"Supprimer définitivement {what} ?\n\nCette action est irréversible : rien ne passera par la corbeille.\n\n{path}",
+                "Supprimer définitivement", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+            : MessageBox.Show(this, $"Envoyer {what} à la corbeille ?\n\n{path}", "Envoyer à la corbeille",
+                MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
         if (answer != MessageBoxResult.Yes) return;
 
-        var hwnd = new WindowInteropHelper(this).Handle;
-        bool ok = NativeMethods.SendToRecycleBin(path, hwnd);
+        bool ok;
+        if (permanent)
+        {
+            try
+            {
+                if (node.IsDirectory) Directory.Delete(path, true); else File.Delete(path);
+                ok = true;
+            }
+            catch (Exception) { ok = false; }
+        }
+        else
+        {
+            ok = NativeMethods.SendToRecycleBin(path, new WindowInteropHelper(this).Handle);
+        }
         bool gone = !File.Exists(path) && !Directory.Exists(path);
-        if (!ok && !gone)
+        if (!gone)
         {
             MessageBox.Show(this, "La suppression n'a pas pu être faite (fichier utilisé, droits insuffisants ou opération annulée).",
                 "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -416,7 +466,10 @@ public partial class MainWindow : Window
         else SetMapRoot(mapRoot);
         Map.Render();
         RevealInTree(parent, zoomMap: false);
-        StatusText.Text = $"« {node.Name} » envoyé à la corbeille · {ByteSize.Format(node.Size)} libérés.";
+        UpdateDriveStats(root);
+        StatusText.Text = permanent
+            ? $"« {node.Name} » supprimé définitivement · {ByteSize.Format(node.Size)} libérés."
+            : $"« {node.Name} » envoyé à la corbeille · {ByteSize.Format(node.Size)} libérés.";
     }
 
     private void RemoveRows(FsNode node)

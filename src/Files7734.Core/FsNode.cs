@@ -11,6 +11,9 @@ public sealed class FsNode
 
     public string Name { get; internal set; }
     public bool IsDirectory { get; }
+
+    /// <summary>Nœud artificiel (regroupement de plusieurs dossiers, espace libre…) : n'existe pas sur le disque.</summary>
+    public bool IsVirtual { get; internal set; }
     public FsNode? Parent { get; internal set; }
     public List<FsNode>? Children { get; internal set; }
 
@@ -44,7 +47,8 @@ public sealed class FsNode
         get
         {
             var parts = new Stack<string>();
-            for (var n = this; n != null; n = n.Parent) parts.Push(n.Name);
+            for (var n = this; n != null && !n.IsVirtual; n = n.Parent) parts.Push(n.Name);
+            if (parts.Count == 0) return Name;
             string path = parts.Pop();
             while (parts.Count > 0) path = PathUtil.Combine(path, parts.Pop());
             return path;

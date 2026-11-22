@@ -6,7 +6,7 @@
         Icon="app.ico" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}"
         Background="#E8E8ED" WindowStartupLocation="CenterScreen" UseLayoutRounding="True">
     <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="52" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
 
     <Grid x:Name="RootGrid">
@@ -82,25 +82,33 @@
         <Border Grid.Column="1" Background="{StaticResource ContentBrush}" BorderBrush="#14000000" BorderThickness="1,0,0,0">
             <Grid Margin="22,0,22,14">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="40"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Barre d'outils (sert aussi de barre de titre) -->
-                <DockPanel Grid.Row="0" Height="78">
+                <!-- Barre de menus + boutons de fenêtre (zone de déplacement de la fenêtre) -->
+                <DockPanel Grid.Row="0">
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,0,-22,0" WindowChrome.IsHitTestVisibleInChrome="True">
                         <Button Style="{StaticResource CaptionButton}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Réduire"/>
                         <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Agrandir"/>
                         <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fermer"/>
                     </StackPanel>
+                    <Menu x:Name="MainMenu" Margin="-10,8,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </DockPanel>
 
-                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,8,20,0" WindowChrome.IsHitTestVisibleInChrome="True">
+                <!-- Barre d'outils (sert aussi de barre de titre) -->
+                <DockPanel Grid.Row="1" Margin="0,4,0,16">
+
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                         <StackPanel VerticalAlignment="Center" Width="230" Margin="0,0,14,0">
                             <TextBlock x:Name="ProgressText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
                             <ProgressBar x:Name="Progress" Margin="0,6,0,0" Minimum="0" Maximum="1" Visibility="Collapsed"/>
                         </StackPanel>
                         <Button x:Name="CancelButton" Style="{StaticResource PlainButton}" Click="CancelButton_Click" Visibility="Collapsed" Content="Annuler" Margin="0,0,8,0"/>
+                        <TextBox x:Name="SearchBox" Style="{StaticResource SearchBox}" Width="220" Margin="0,0,10,0"
+                                 Tag="Rechercher (ex. *.mp4)" KeyDown="SearchBox_KeyDown" ToolTip="Entrée pour chercher, Échap pour effacer"/>
                         <Button x:Name="ScanButton" Style="{StaticResource AccentButton}" Click="ScanButton_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
@@ -109,23 +117,45 @@
                         </Button>
                     </StackPanel>
 
-                    <StackPanel VerticalAlignment="Center" Margin="0,8,0,0">
+                    <StackPanel VerticalAlignment="Top">
                         <TextBlock x:Name="HeaderTitle" Text="Bienvenue" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="HeaderSub" Text="Choisis un disque à gauche puis clique sur Analyser." Foreground="{StaticResource MutedBrush}"
                                    FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
+                        <!-- Résumé du disque -->
+                        <WrapPanel x:Name="DriveStats" Margin="0,12,0,0" Visibility="Collapsed">
+                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                                <StackPanel><TextBlock Text="Espace total" Style="{StaticResource StatLabel}"/><TextBlock x:Name="StatTotal" Style="{StaticResource StatValue}"/></StackPanel>
+                            </Border>
+                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="Espace utilisé" Style="{StaticResource StatLabel}"/>
+                                    <TextBlock Style="{StaticResource StatValue}"><Run x:Name="StatUsed"/><Run x:Name="StatUsedPct" FontWeight="Normal" Foreground="{StaticResource MutedBrush}" FontSize="12"/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="Espace libre" Style="{StaticResource StatLabel}"/>
+                                    <TextBlock Style="{StaticResource StatValue}" Foreground="#248A3D"><Run x:Name="StatFree"/><Run x:Name="StatFreePct" FontWeight="Normal" Foreground="{StaticResource MutedBrush}" FontSize="12"/></TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1"
+                                    ToolTip="Espace utilisé par Windows mais non visible dans les fichiers (réserve système, métadonnées…)">
+                                <StackPanel><TextBlock Text="Espace réservé" Style="{StaticResource StatLabel}"/><TextBlock x:Name="StatReserved" Style="{StaticResource StatValue}"/></StackPanel>
+                            </Border>
+                        </WrapPanel>
                     </StackPanel>
                 </DockPanel>
 
-                <Grid Grid.Row="1">
+                <Grid Grid.Row="2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="5*" MinHeight="140"/>
-                        <RowDefinition Height="16"/>
-                        <RowDefinition Height="4*" MinHeight="120"/>
+                        <RowDefinition x:Name="RowSplit" Height="16"/>
+                        <RowDefinition x:Name="RowMap" Height="4*" MinHeight="120"/>
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3*" MinWidth="300"/>
-                        <ColumnDefinition Width="16"/>
-                        <ColumnDefinition Width="2*" MinWidth="260"/>
+                        <ColumnDefinition x:Name="ColSplit" Width="16"/>
+                        <ColumnDefinition x:Name="ColSide" Width="2*" MinWidth="260"/>
                     </Grid.ColumnDefinitions>
 
                     <ContentControl Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}" Padding="0,2,0,8">
@@ -189,9 +219,9 @@
                         </ListView>
                     </ContentControl>
 
-                    <GridSplitter Grid.Row="0" Grid.Column="1" Width="16" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+                    <GridSplitter x:Name="SplitV" Grid.Row="0" Grid.Column="1" Width="16" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
 
-                    <ContentControl Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}" Padding="0,0,0,8">
+                    <ContentControl x:Name="SideCard" Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}" Padding="0,0,0,8">
                         <TabControl>
                             <TabItem Header="Types">
                                 <ListView x:Name="ExtList" SelectionMode="Single">
@@ -268,12 +298,47 @@
                                     </ListView.View>
                                 </ListView>
                             </TabItem>
+                            <TabItem x:Name="SearchTab" Header="Recherche" Visibility="Collapsed">
+                                <ListView x:Name="SearchList" SelectionMode="Single" MouseDoubleClick="TopList_MouseDoubleClick"
+                                          ContextMenuOpening="List_ContextMenuOpening">
+                                    <ListView.ContextMenu><ContextMenu/></ListView.ContextMenu>
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="Taille" Width="80">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Nom" Width="200">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border Width="10" Height="10" CornerRadius="2" Background="{Binding Swatch}" Margin="6,0,8,0" VerticalAlignment="Center"/>
+                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Dossier" Width="320">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Modifié" Width="120">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{StaticResource MutedBrush}"/></DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </TabItem>
                         </TabControl>
                     </ContentControl>
 
-                    <GridSplitter Grid.Row="1" Grid.ColumnSpan="3" Height="16" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
+                    <GridSplitter x:Name="SplitH" Grid.Row="1" Grid.ColumnSpan="3" Height="16" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext"/>
 
-                    <ContentControl Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource Card}" Padding="12,10,12,12">
+                    <ContentControl x:Name="MapCard" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource Card}" Padding="12,10,12,12">
                         <DockPanel>
                             <DockPanel DockPanel.Dock="Top" Margin="4,0,0,10">
                                 <Button DockPanel.Dock="Right" x:Name="UpButton" Style="{StaticResource PlainButton}" Padding="12,5"
@@ -293,9 +358,7 @@
                     </ContentControl>
                 </Grid>
 
-                <DockPanel Grid.Row="2" Margin="4,12,4,0">
-                    <TextBlock DockPanel.Dock="Right" Foreground="{StaticResource FaintBrush}" FontSize="11.5"
-                               Text="Double-clic sur la carte : zoomer · Clic droit : actions"/>
+                <DockPanel Grid.Row="3" Margin="4,12,4,0">
                     <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"
                                Text="Prêt."/>
                 </DockPanel>

@@ -49,17 +49,79 @@ public static class Analysis
     }
 }
 
+public enum SizeUnit { Auto, Bytes, KB, MB, GB, TB }
+
 public static class ByteSize
 {
     private static readonly string[] Units = { "o", "Ko", "Mo", "Go", "To", "Po" };
+    private static readonly System.Globalization.CultureInfo Fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+
+    /// <summary>Unité d'affichage choisie dans les options (Auto = la plus lisible).</summary>
+    public static SizeUnit Unit { get; set; } = SizeUnit.Auto;
 
     /// <summary>Formate une taille en octets à la française, ex. "12,4 Go".</summary>
     public static string Format(long bytes)
     {
+        switch (Unit)
+        {
+            case SizeUnit.Bytes: return bytes.ToString("N0", Fr) + " o";
+            case SizeUnit.KB: return Fixed(bytes, 1);
+            case SizeUnit.MB: return Fixed(bytes, 2);
+            case SizeUnit.GB: return Fixed(bytes, 3);
+            case SizeUnit.TB: return Fixed(bytes, 4);
+        }
         double v = bytes;
         int u = 0;
         while (Math.Abs(v) >= 1024 && u < Units.Length - 1) { v /= 1024; u++; }
-        var fr = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
-        return u == 0 ? $"{bytes} o" : v.ToString(v >= 100 ? "0" : "0.0", fr) + " " + Units[u];
+        return u == 0 ? $"{bytes} o" : v.ToString(v >= 100 ? "0" : "0.0", Fr) + " " + Units[u];
+    }
+
+    private static string Fixed(long bytes, int power)
+    {
+        double v = bytes / Math.Pow(1024, power);
+        return v.ToString(power >= 3 ? "N2" : "N1", Fr) + " " + Units[power];
+    }
+}
+
+public static class Search
+{
+    /// <summary>
+    /// Cherche les fichiers et dossiers dont le nom correspond au motif (ex. « *.mp4 », « photo »).
+    /// Renvoie les <paramref name="max"/> plus gros résultats.
+    /// </summary>
+    public static List<FsNode> Find(FsNode root, string pattern, int max = 10000)
+    {
+        pattern = pattern.Trim();
+        if (pattern.Length == 0) return new();
+        Func<string, bool> match;
+        if (pattern.Contains('*') || pattern.Contains('?'))
+        {
+            var regex = new System.Text.RegularExpressions.Regex(
+                "^" + System.Text.RegularExpressions.Regex.Escape(pattern).Replace("\\*", ".*").Replace("\\?", ".") + "$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+            match = regex.IsMatch;
+        }
+        else
+        {
+            match = n => n.Contains(pattern, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var heap = new PriorityQueue<FsNode, long>();
+        var stack = new Stack<FsNode>();
+        stack.Push(root);
+        while (stack.Count > 0)
+        {
+            var n = stack.Pop();
+            if (n != root && match(n.Name))
+            {
+                if (heap.Count < max) heap.Enqueue(n, n.Size);
+                else if (n.Size > heap.Peek().Size) heap.EnqueueDequeue(n, n.Size);
+            }
+            if (n.Children != null) foreach (var c in n.Children) stack.Push(c);
+        }
+        var list = new List<FsNode>(heap.Count);
+        while (heap.Count > 0) list.Add(heap.Dequeue());
+        list.Reverse();
+        return list;
     }
 }
