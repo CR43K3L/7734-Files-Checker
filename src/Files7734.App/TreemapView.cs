@@ -39,11 +39,18 @@ public sealed class TreemapView : Grid
     private int _version;
     private FsNode? _root;
     private FsNode? _selected;
+    private (TreemapRect? From, FsNode? ZoomOutOf)? _pendingZoom;
+    private readonly ScaleTransform _zoomScale = new();
+    private readonly TranslateTransform _zoomMove = new();
 
     public TreemapView()
     {
         Background = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF7));
         ClipToBounds = true;
+        var zoom = new TransformGroup();
+        zoom.Children.Add(_zoomScale);
+        zoom.Children.Add(_zoomMove);
+        _image.RenderTransform = zoom;
         Children.Add(_image);
         Children.Add(_labels);
         Children.Add(_empty);
@@ -94,6 +101,24 @@ public sealed class TreemapView : Grid
         set
         {
             if (_root == value) return;
+            var old = _root;
+            _pendingZoom = null;
+            if (old != null && value != null && _rects.Count > 0)
+            {
+                if (FsTree.IsInside(value, old))
+                {
+                    // Zoom avant : le dossier choisi grandit depuis sa place actuelle.
+                    for (var n = value; n != null && n != old; n = n.Parent)
+                    {
+                        int i = _rects.FindIndex(r => r.Node == n);
+                        if (i >= 0) { _pendingZoom = (_rects[i], null); break; }
+                    }
+                }
+                else if (FsTree.IsInside(old, value))
+                {
+                    _pendingZoom = (null, old); // zoom arrière : l'ancien dossier rétrécit vers sa place
+                }
+            }
             _root = value;
             Render();
         }
@@ -170,6 +195,47 @@ public sealed class TreemapView : Grid
         _labels.Update(ShowNames ? rects : null, _scaleX, _scaleY, dpi.PixelsPerDip);
         _hover.Visibility = Visibility.Collapsed;
         UpdateSelection();
+        var zoom = _pendingZoom;
+        _pendingZoom = null;
+        if (zoom != null) AnimateZoom(zoom.Value.From, zoom.Value.ZoomOutOf);
+    }
+
+    /// <summary>Petite animation de zoom (≈ 0,3 s) entre l'ancien et le nouveau dossier affiché.</summary>
+    private void AnimateZoom(TreemapRect? from, FsNode? zoomOutOf)
+    {
+        double w = ActualWidth, h = ActualHeight;
+        if (w < 4 || h < 4 || !SystemParameters.ClientAreaAnimation) return;
+        double sx, sy, tx, ty;
+        if (from is TreemapRect f)
+        {
+            double rx = f.X / _scaleX, ry = f.Y / _scaleY, rw = Math.Max(1, f.W / _scaleX), rh = Math.Max(1, f.H / _scaleY);
+            sx = rw / w; sy = rh / h; tx = rx; ty = ry;
+        }
+        else
+        {
+            int i = _rects.FindIndex(x => x.Node == zoomOutOf);
+            if (i < 0) return;
+            var r = _rects[i];
+            double rx = r.X / _scaleX, ry = r.Y / _scaleY, rw = Math.Max(1, r.W / _scaleX), rh = Math.Max(1, r.H / _scaleY);
+            sx = w / rw; sy = h / rh; tx = -rx * sx; ty = -ry * sy;
+        }
+        if (Math.Abs(sx - 1) < 0.01 && Math.Abs(sy - 1) < 0.01) return;
+
+        var duration = new Duration(TimeSpan.FromMilliseconds(300));
+        var ease = new System.Windows.Media.Animation.CubicEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut };
+        System.Windows.Media.Animation.DoubleAnimation Anim(double fromValue, double to) =>
+            new(fromValue, to, duration) { EasingFunction = ease };
+        _zoomScale.BeginAnimation(ScaleTransform.ScaleXProperty, Anim(sx, 1));
+        _zoomScale.BeginAnimation(ScaleTransform.ScaleYProperty, Anim(sy, 1));
+        _zoomMove.BeginAnimation(TranslateTransform.XProperty, Anim(tx, 0));
+        _zoomMove.BeginAnimation(TranslateTransform.YProperty, Anim(ty, 0));
+        var fade = new System.Windows.Media.Animation.DoubleAnimation(0, 1, new Duration(TimeSpan.FromMilliseconds(220)))
+        {
+            BeginTime = TimeSpan.FromMilliseconds(200),
+        };
+        _labels.Opacity = 0;
+        _labels.BeginAnimation(OpacityProperty, fade);
+        _overlay.BeginAnimation(OpacityProperty, fade);
     }
 
     private static int[] Paint(List<TreemapRect> rects, int w, int h, bool dark)

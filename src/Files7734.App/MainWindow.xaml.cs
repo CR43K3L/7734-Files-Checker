@@ -58,6 +58,8 @@ public partial class MainWindow : Window
         StateChanged += (_, _) => UpdateWindowState();
 
         InitFeatures();
+        InitPages();
+        InitTray();
 
         // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.
         var args = Environment.GetCommandLineArgs();
@@ -174,8 +176,10 @@ public partial class MainWindow : Window
         Map.FreeSpaceBytes = null;
         DriveStats.Visibility = Visibility.Collapsed;
         _driveFree = null;
-        MapTitle.Text = "Carte du disque";
+        MapTitle.Text = "";
+        UpdateBreadcrumb(null);
         UpButton.IsEnabled = false;
+        OnScanStarting();
 
         SetBusy(true);
         _scanClock = Stopwatch.StartNew();
@@ -211,6 +215,8 @@ public partial class MainWindow : Window
             SearchTab.Visibility = Visibility.Collapsed;
             SearchList.ItemsSource = null;
             HeaderSub.Text = $"{ByteSize.Format(root.Size)} · {Fmt.Count(root.FileCount)} fichiers · analysé en {result.Elapsed.TotalSeconds.ToString("0.0", Fmt.Fr)} s";
+
+            OnScanCompleted(result, path);
 
             if (result.Method != ScanMethod.Mft && result.FallbackReason != null && _elevated)
             {
@@ -354,7 +360,8 @@ public partial class MainWindow : Window
     {
         Map.FreeSpaceBytes = _settings.MapShowFreeSpace && _result != null && dir == _result.Root ? _driveFree : null;
         Map.Root = dir;
-        MapTitle.Text = $"{dir.FullPath}  ·  {ByteSize.Format(dir.Size)}";
+        MapTitle.Text = ByteSize.Format(dir.Size);
+        UpdateBreadcrumb(dir);
         UpButton.IsEnabled = _result != null && dir != _result.Root && dir.Parent != null;
     }
 
@@ -451,25 +458,38 @@ public partial class MainWindow : Window
             return;
         }
 
-        var parent = node.Parent;
-        RemoveRows(node);
-        FsTree.Remove(node);
+        AfterRemoval(new[] { node });
+        StatusText.Text = permanent
+            ? $"« {node.Name} » supprimé définitivement · {ByteSize.Format(node.Size)} libérés."
+            : $"« {node.Name} » envoyé à la corbeille · {ByteSize.Format(node.Size)} libérés.";
+    }
+
+    /// <summary>Retire de l'arbre et de l'affichage des éléments supprimés du disque, puis met tout à jour.</summary>
+    private void AfterRemoval(IReadOnlyList<FsNode> removed)
+    {
+        if (_result == null || removed.Count == 0) return;
+        var reveal = removed.Count == 1 ? removed[0].Parent : null;
+        foreach (var n in removed)
+        {
+            if (n.Parent == null) continue;
+            RemoveRows(n);
+            FsTree.Remove(n);
+        }
         foreach (var r in _rows) r.Refresh();
 
         var root = _result.Root;
         var exts = Analysis.ByExtension(root);
         ExtList.ItemsSource = exts.Select(x => new ExtensionRow(x, root.Size)).ToList();
         TopList.ItemsSource = Analysis.LargestFiles(root, 1000).Select(f => new FileRow(f)).ToList();
+        if (SearchList.ItemsSource is List<FileRow> found) SearchList.ItemsSource = found.Where(f => FsTree.IsInside(f.Node, root)).ToList();
 
         var mapRoot = Map.Root;
-        if (mapRoot == null || !FsTree.IsInside(mapRoot, root)) SetMapRoot(parent);
+        if (mapRoot == null || !FsTree.IsInside(mapRoot, root)) SetMapRoot(reveal ?? root);
         else SetMapRoot(mapRoot);
         Map.Render();
-        RevealInTree(parent, zoomMap: false);
+        if (reveal != null) RevealInTree(reveal, zoomMap: false);
         UpdateDriveStats(root);
-        StatusText.Text = permanent
-            ? $"« {node.Name} » supprimé définitivement · {ByteSize.Format(node.Size)} libérés."
-            : $"« {node.Name} » envoyé à la corbeille · {ByteSize.Format(node.Size)} libérés.";
+        LoadDrives();
     }
 
     private void RemoveRows(FsNode node)

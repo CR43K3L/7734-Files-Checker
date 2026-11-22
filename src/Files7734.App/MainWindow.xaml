@@ -49,6 +49,23 @@
                 </Button>
             </StackPanel>
 
+            <TextBlock DockPanel.Dock="Top" Text="Outils" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
+            <ListBox x:Name="NavList" DockPanel.Dock="Top" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource SidebarItem}"
+                     Margin="0,0,0,16" SelectionChanged="NavList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" Visibility="{Binding BadgeVisibility}">
+                                <TextBlock Text="{Binding Badge}" FontSize="10.5" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,11,0"/>
+                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
             <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
             <ListBox x:Name="DriveList" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource SidebarItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -146,7 +163,7 @@
                     </StackPanel>
                 </DockPanel>
 
-                <Grid Grid.Row="2">
+                <Grid x:Name="AnalysisPage" Grid.Row="2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="5*" MinHeight="140"/>
                         <RowDefinition x:Name="RowSplit" Height="16"/>
@@ -348,8 +365,11 @@
                                         <TextBlock Text="Dossier parent" FontSize="12"/>
                                     </StackPanel>
                                 </Button>
-                                <TextBlock x:Name="MapTitle" FontWeight="SemiBold" VerticalAlignment="Center" FontSize="12.5"
-                                           TextTrimming="CharacterEllipsis" Text="Carte du disque"/>
+                                <TextBlock x:Name="MapTitle" DockPanel.Dock="Right" Foreground="{DynamicResource MutedBrush}" VerticalAlignment="Center"
+                                           FontSize="12" Margin="10,0,12,0"/>
+                                <StackPanel x:Name="Breadcrumb" Orientation="Horizontal" VerticalAlignment="Center" ClipToBounds="True">
+                                    <TextBlock Text="Carte du disque" FontWeight="SemiBold" FontSize="12.5" VerticalAlignment="Center"/>
+                                </StackPanel>
                             </DockPanel>
                             <Border CornerRadius="8" ClipToBounds="True">
                                 <local:TreemapView x:Name="Map"/>
@@ -357,6 +377,260 @@
                         </DockPanel>
                     </ContentControl>
                 </Grid>
+
+
+                <!-- ═════════ Page : Jeux installés ═════════ -->
+                <ContentControl x:Name="GamesPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button x:Name="GamesRefresh" Style="{StaticResource PlainButton}" Click="GamesRefresh_Click" Margin="8,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Actualiser"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Jeux installés"/>
+                                <TextBlock x:Name="GamesHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Recherche des jeux…"/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ListView x:Name="GamesList" SelectionMode="Single">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Jeu" Width="300">
+                                        <GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Border Width="10" Height="10" CornerRadius="3" Background="{Binding LauncherBrush}" Margin="4,0,9,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Lanceur" Width="110">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Launcher}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Taille" Width="96">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="% des jeux" Width="120">
+                                        <GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Border Width="56" Height="8" Background="{DynamicResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center"><Border HorizontalAlignment="Left" Width="{Binding BarWidth}" Background="{Binding LauncherBrush}" CornerRadius="4"/></Border><TextBlock Text="{Binding PercentText}" Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Dossier" Width="330">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding InstallPath}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="" Width="250">
+                                        <GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal">
+                                            <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameOpen_Click" Tag="{Binding}" Content="Ouvrir"/>
+                                            <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameReveal_Click" Tag="{Binding}" Content="Voir dans l'analyse"/>
+                                            <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameUninstall_Click" Tag="{Binding}" Content="Désinstaller"/>
+                                        </StackPanel></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
+                <!-- ═════════ Page : Nettoyage intelligent ═════════ -->
+                <ContentControl x:Name="CleanPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button x:Name="CleanMeasure" Style="{StaticResource PlainButton}" Click="CleanMeasure_Click" Margin="8,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Recalculer"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="CleanRun" Style="{StaticResource AccentButton}" Click="CleanRun_Click" Margin="8,0,0,0" IsEnabled="False">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Nettoyer la sélection"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Nettoyage intelligent"/>
+                                <TextBlock x:Name="CleanHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Coche ce que tu veux supprimer. Rien n'est coché d'office."/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ListView x:Name="CleanList" SelectionMode="Single">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="" Width="40">
+                                        <GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanCheck}" Margin="4,0,0,0"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Catégorie" Width="520">
+                                        <GridViewColumn.CellTemplate><DataTemplate><StackPanel Margin="0,3"><TextBlock Text="{Binding Name}" FontWeight="SemiBold"/><TextBlock Text="{Binding Description}" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextWrapping="Wrap" MaxWidth="500"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Taille" Width="110">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Fichiers" Width="100">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding FilesText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="" Width="260">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding StateText}" Foreground="{Binding StateBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
+                <!-- ═════════ Page : Doublons ═════════ -->
+                <ContentControl x:Name="DupesPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Border Style="{StaticResource SegmentHost}" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="dupmin" Tag="1" Content="≥ 1 Mo" IsChecked="True" Checked="DupesMin_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="dupmin" Tag="10" Content="≥ 10 Mo" Checked="DupesMin_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="dupmin" Tag="100" Content="≥ 100 Mo" Checked="DupesMin_Checked"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button x:Name="DupesFind" Style="{StaticResource PlainButton}" Click="DupesFind_Click" Margin="8,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE721;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Chercher"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="DupesAuto" Style="{StaticResource PlainButton}" Click="DupesAuto_Click" Margin="8,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE73A;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Cocher les copies"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button x:Name="DupesDelete" Style="{StaticResource AccentButton}" Click="DupesDelete_Click" Margin="8,0,0,0" IsEnabled="False">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Envoyer à la corbeille"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Doublons"/>
+                                <TextBlock x:Name="DupesHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Lance une analyse, puis cherche les fichiers identiques."/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ProgressBar x:Name="DupesProgress" DockPanel.Dock="Top" Minimum="0" Maximum="1" Margin="0,0,0,10" Visibility="Collapsed"/>
+                        <ListView x:Name="DupesList" SelectionMode="Single" MouseDoubleClick="PageList_MouseDoubleClick">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="" Width="40">
+                                        <GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanCheck}" Visibility="{Binding CheckVisibility}" Margin="4,0,0,0"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Nom" Width="300">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" FontWeight="{Binding NameWeight}" Margin="{Binding Indent}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Taille" Width="96">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Dossier" Width="420">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Modifié" Width="120">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
+                <!-- ═════════ Page : Vieux fichiers ═════════ -->
+                <ContentControl x:Name="OldPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Border Style="{StaticResource SegmentHost}" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldage" Tag="1" Content="1 an" IsChecked="True" Checked="OldAge_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldage" Tag="2" Content="2 ans" Checked="OldAge_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldage" Tag="5" Content="5 ans" Checked="OldAge_Checked"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource SegmentHost}" Margin="8,0,0,0" VerticalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldmin" Tag="10" Content="≥ 10 Mo" IsChecked="True" Checked="OldAge_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldmin" Tag="100" Content="≥ 100 Mo" Checked="OldAge_Checked"/>
+                                        <RadioButton Style="{StaticResource Segment}" GroupName="oldmin" Tag="1000" Content="≥ 1 Go" Checked="OldAge_Checked"/>
+                                    </StackPanel>
+                                </Border>
+                                <Button x:Name="OldDelete" Style="{StaticResource AccentButton}" Click="OldDelete_Click" Margin="8,0,0,0" IsEnabled="False">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE74D;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                        <TextBlock Text="Envoyer à la corbeille"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Vieux fichiers"/>
+                                <TextBlock x:Name="OldHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Gros fichiers que personne n'a modifiés depuis longtemps."/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ListView x:Name="OldList" SelectionMode="Single" MouseDoubleClick="PageList_MouseDoubleClick">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="" Width="40">
+                                        <GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanCheck}" Margin="4,0,0,0"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Nom" Width="280">
+                                        <GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Border Width="10" Height="10" CornerRadius="2" Background="{Binding Swatch}" Margin="2,0,8,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Taille" Width="96">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Modifié" Width="120">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Âge" Width="90">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding AgeText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Dossier" Width="400">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
+                <!-- ═════════ Page : Quoi de neuf depuis la dernière analyse ═════════ -->
+                <ContentControl x:Name="NewsPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Quoi de neuf depuis la dernière analyse"/>
+                                <TextBlock x:Name="NewsHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Analyse un disque deux fois pour voir ce qui a changé."/>
+                            </StackPanel>
+                        </DockPanel>
+
+                        <ListView x:Name="NewsList" SelectionMode="Single" MouseDoubleClick="PageList_MouseDoubleClick">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="" Width="36">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" Foreground="{Binding KindBrush}" HorizontalAlignment="Center"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Dossier" Width="480">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Changement" Width="120">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding DeltaText}" Style="{StaticResource Num}" FontWeight="SemiBold" Foreground="{Binding KindBrush}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Avant" Width="100">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding BeforeText}" Style="{StaticResource MutedNum}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="Maintenant" Width="100">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding AfterText}" Style="{StaticResource MutedNum}"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                    <GridViewColumn Header="" Width="140">
+                                        <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding KindText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
+                                    </GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
 
                 <DockPanel Grid.Row="3" Margin="4,12,4,0">
                     <TextBlock x:Name="StatusText" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"

@@ -64,7 +64,7 @@ public partial class MainWindow
         Item(file, "Copier les infos (nom, taille…)", "Ctrl+Shift+C", () => WithNode(CopyInfo));
         Item(file, "Exporter les types de fichiers en CSV…", "Ctrl+Alt+F", ExportTypes);
         Sep(file);
-        Item(file, "Quitter", "Alt+F4", Close, registerShortcut: false);
+        Item(file, "Quitter", "Alt+F4", () => { _quitting = true; Close(); }, registerShortcut: false);
 
         var opt = TopMenu("_Options");
         Check(opt, "theme:System", "Thème : comme Windows", null, () => SetTheme(ThemeMode.System));
@@ -90,6 +90,9 @@ public partial class MainWindow
         Check(opt, "allocated", "Carte : taille sur le disque", null, () => Toggle(s => s.MapUseAllocated = !s.MapUseAllocated));
         Check(opt, "free", "Carte : afficher l'espace libre", "Ctrl+Shift+S", () => Toggle(s => s.MapShowFreeSpace = !s.MapShowFreeSpace));
         Check(opt, "names", "Carte : afficher les noms", "Ctrl+Shift+N", () => Toggle(s => s.MapShowNames = !s.MapShowNames));
+        Sep(opt);
+        Check(opt, "monitor", "Surveiller l'espace disque en arrière-plan", null, ToggleMonitor);
+        Check(opt, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
         Sep(opt);
         Item(opt, "Réinitialiser les réglages", null, ResetSettings);
     }
@@ -454,6 +457,8 @@ public partial class MainWindow
                 "allocated" => _settings.MapUseAllocated,
                 "free" => _settings.MapShowFreeSpace,
                 "names" => _settings.MapShowNames,
+                "monitor" => _settings.MonitorDisks,
+                "startup" => _settings.StartWithWindows,
                 _ => false,
             };
         }
@@ -493,7 +498,8 @@ public partial class MainWindow
             TopList.ItemsSource = Analysis.LargestFiles(root, 1000).Select(f => new FileRow(f)).ToList();
             if (SearchList.ItemsSource is List<FileRow> found) SearchList.ItemsSource = found.Select(f => new FileRow(f.Node)).ToList();
             UpdateDriveStats(root);
-            if (Map.Root != null) MapTitle.Text = $"{Map.Root.FullPath}  ·  {ByteSize.Format(Map.Root.Size)}";
+            if (Map.Root != null) { MapTitle.Text = ByteSize.Format(Map.Root.Size); UpdateBreadcrumb(Map.Root); }
+            RefreshPageTexts();
         }
         LoadDrives();
     }

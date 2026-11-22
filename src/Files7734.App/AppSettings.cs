@@ -15,6 +15,10 @@ public sealed class AppSettings
     public bool MapUseAllocated { get; set; }
     public bool MapShowFreeSpace { get; set; }
     public bool MapShowNames { get; set; } = true;
+    /// <summary>Alerte quand un disque est presque plein (l'app reste dans la zone de notification).</summary>
+    public bool MonitorDisks { get; set; }
+    public bool StartWithWindows { get; set; }
+    public bool TrayHintShown { get; set; }
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "7734FilesChecker", "settings.json");
