@@ -16,7 +16,7 @@ internal static class Fmt
 /// <summary>Une ligne de l'arborescence (liste "aplatie" pour rester fluide avec des millions de fichiers).</summary>
 public sealed class TreeRow : INotifyPropertyChanged
 {
-    private static readonly Brush FolderBrush = ExtensionColors.BrushOf(0xFFFBBF24);
+    private static readonly Brush FolderBrush = ExtensionColors.BrushOf(0xFF1E9BFF);
     private readonly Action<TreeRow> _onToggle;
     private bool _expanded;
 

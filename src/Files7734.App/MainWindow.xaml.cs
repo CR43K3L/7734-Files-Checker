@@ -20,9 +20,12 @@ public partial class MainWindow : Window
     private Stopwatch _scanClock = new();
     private bool _revealing;
 
-    private sealed record DriveItem(string Root, string Label)
+    /// <summary>Un disque dans la barre latérale.</summary>
+    public sealed record DriveItem(string Root, string Letter, string Label, string UsageText, double UsedFraction)
     {
-        public override string ToString() => Label;
+        public double BarWidth => Math.Max(2, 150 * UsedFraction);
+        public System.Windows.Media.Brush BarBrush => ExtensionColors.BrushOf(UsedFraction > 0.9 ? 0xFFFF3B30 : 0xFF0A7CFF);
+        public override string ToString() => $"{Letter} {Label}";
     }
 
     public MainWindow()
@@ -50,7 +53,6 @@ public partial class MainWindow : Window
         LoadDrives();
         SourceInitialized += (_, _) => GlassEffect.Apply(this);
         StateChanged += (_, _) => UpdateWindowState();
-        SizeChanged += (_, _) => PlaceBlobs();
 
         // Un chemin passé en argument (ex. glisser un dossier sur l'exe) est analysé directement.
         var args = Environment.GetCommandLineArgs();
@@ -73,15 +75,6 @@ public partial class MainWindow : Window
         MaxButton.ToolTip = WindowState == WindowState.Maximized ? "Restaurer" : "Agrandir";
     }
 
-    private void PlaceBlobs()
-    {
-        double w = ActualWidth, h = ActualHeight;
-        Canvas.SetLeft(BlobB, w - BlobB.Width * 0.7);
-        Canvas.SetTop(BlobB, h - BlobB.Height * 0.75);
-        Canvas.SetLeft(BlobC, w * 0.45);
-        Canvas.SetTop(BlobC, h * 0.18);
-    }
-
     // ───────────── Disques ─────────────
 
     private void LoadDrives()
@@ -94,19 +87,34 @@ public partial class MainWindow : Window
                 if (!d.IsReady) continue;
                 long used = d.TotalSize - d.TotalFreeSpace;
                 string name = string.IsNullOrWhiteSpace(d.VolumeLabel) ? "Disque local" : d.VolumeLabel;
-                items.Add(new DriveItem(d.RootDirectory.FullName,
-                    $"{d.Name.TrimEnd('\\')}  {name} — {ByteSize.Format(used)} / {ByteSize.Format(d.TotalSize)} ({d.DriveFormat})"));
+                double fraction = d.TotalSize > 0 ? (double)used / d.TotalSize : 0;
+                items.Add(new DriveItem(d.RootDirectory.FullName, d.Name.TrimEnd('\\'), name,
+                    $"{ByteSize.Format(d.TotalFreeSpace)} libres sur {ByteSize.Format(d.TotalSize)}", fraction));
             }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
-        DriveBox.ItemsSource = items;
-        DriveBox.SelectedIndex = Math.Max(0, items.FindIndex(i => i.Root.StartsWith("C", StringComparison.OrdinalIgnoreCase)));
+        DriveList.ItemsSource = items;
+        DriveList.SelectedIndex = Math.Max(0, items.FindIndex(i => i.Root.StartsWith("C", StringComparison.OrdinalIgnoreCase)));
     }
 
     private void ScanButton_Click(object sender, RoutedEventArgs e)
     {
-        if (DriveBox.SelectedItem is DriveItem d) StartScan(d.Root);
+        if (DriveList.SelectedItem is DriveItem d) StartScan(d.Root);
+    }
+
+    private void DriveList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (DriveList.SelectedItem is DriveItem d && !_progressTimer.IsEnabled) StartScan(d.Root);
+    }
+
+    private void DriveList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_result == null && DriveList.SelectedItem is DriveItem d)
+        {
+            HeaderTitle.Text = $"{d.Letter} {d.Label}";
+            HeaderSub.Text = d.UsageText;
+        }
     }
 
     private void FolderButton_Click(object sender, RoutedEventArgs e)
@@ -145,6 +153,8 @@ public partial class MainWindow : Window
         SetBusy(true);
         _scanClock = Stopwatch.StartNew();
         StatusText.Text = $"Analyse de {path}…";
+        HeaderTitle.Text = path;
+        HeaderSub.Text = "Analyse en cours…";
 
         try
         {
@@ -169,6 +179,9 @@ public partial class MainWindow : Window
             StatusText.Text = $"{root.FullPath} analysé en {result.Elapsed.TotalSeconds.ToString("0.0", Fmt.Fr)} s ({method}) · " +
                               $"{ByteSize.Format(root.Size)} · {Fmt.Count(root.FileCount)} fichiers · {Fmt.Count(root.FolderCount)} dossiers{errors}";
 
+            HeaderTitle.Text = root.FullPath;
+            HeaderSub.Text = $"{ByteSize.Format(root.Size)} · {Fmt.Count(root.FileCount)} fichiers · analysé en {result.Elapsed.TotalSeconds.ToString("0.0", Fmt.Fr)} s";
+
             if (result.Method != ScanMethod.Mft && result.FallbackReason != null && _elevated)
             {
                 AdminBannerText.Text = result.FallbackReason;
@@ -191,7 +204,7 @@ public partial class MainWindow : Window
 
     private void SetBusy(bool busy)
     {
-        ScanButton.IsEnabled = FolderButton.IsEnabled = DriveBox.IsEnabled = !busy;
+        ScanButton.IsEnabled = FolderButton.IsEnabled = DriveList.IsEnabled = !busy;
         CancelButton.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         Progress.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         if (busy) _progressTimer.Start();

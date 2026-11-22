@@ -10,7 +10,7 @@
     <AssemblyName>7734FilesChecker</AssemblyName>
     <Product>7734 Files Checker</Product>
     <AssemblyTitle>7734 Files Checker</AssemblyTitle>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

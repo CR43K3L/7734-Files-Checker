@@ -5,18 +5,19 @@ namespace Files7734.App;
 /// <summary>Attribue une couleur à chaque extension : les plus volumineuses reçoivent les couleurs les plus distinctes.</summary>
 public static class ExtensionColors
 {
+    // Couleurs vives et douces, faciles à distinguer sur fond clair.
     private static readonly uint[] Palette =
     {
-        0xFF7C3AED, 0xFFF28E2B, 0xFF4E79A7, 0xFF59A14F, 0xFFE15759, 0xFFEDC948, 0xFF76B7B2, 0xFFB07AA1,
-        0xFFFF9DA7, 0xFF9C755F, 0xFF2BB5D8, 0xFFD37295, 0xFF8CD17D, 0xFFB6992D, 0xFF499894, 0xFFE377C2,
+        0xFF0A7CFF, 0xFFFF9500, 0xFF34C759, 0xFFFF2D55, 0xFFAF52DE, 0xFF5AC8FA, 0xFFFFCC00, 0xFF5856D6,
+        0xFFFF3B30, 0xFF00C7BE, 0xFFA2845E, 0xFF30B0C7, 0xFFFF6482, 0xFF8E8CD8, 0xFF66D47E, 0xFFFFB340,
     };
 
     private static readonly uint[] Muted =
     {
-        0xFF8A8FA3, 0xFF9C94AE, 0xFF8FA39A, 0xFFA39A8F, 0xFF8F9AA3, 0xFFA38F9C,
+        0xFFAEAEB2, 0xFFB4B0BD, 0xFFADB8B2, 0xFFBDB4AD, 0xFFADB4BD, 0xFFBDADB8,
     };
 
-    public const uint FolderColor = 0xFF5B6274;
+    public const uint FolderColor = 0xFF8E8E93;
 
     private static volatile Dictionary<string, uint> _map = new();
     private static readonly Dictionary<uint, SolidColorBrush> Brushes = new();

@@ -17,15 +17,15 @@ public sealed class TreemapView : Grid
     private readonly Image _image = new() { Stretch = Stretch.Fill, SnapsToDevicePixels = true };
     private readonly Canvas _overlay = new() { IsHitTestVisible = false, ClipToBounds = true };
     private readonly Rectangle _selection = new() { Stroke = Brushes.White, StrokeThickness = 2, Visibility = Visibility.Collapsed };
-    private readonly Rectangle _selectionShadow = new() { Stroke = Brushes.Black, StrokeThickness = 4, Opacity = 0.55, Visibility = Visibility.Collapsed };
-    private readonly Rectangle _hover = new() { Stroke = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255)), StrokeThickness = 1, Visibility = Visibility.Collapsed };
+    private readonly Rectangle _selectionShadow = new() { Stroke = Brushes.White, StrokeThickness = 5, Opacity = 0.9, Visibility = Visibility.Collapsed };
+    private readonly Rectangle _hover = new() { Stroke = new SolidColorBrush(Color.FromArgb(230, 255, 255, 255)), StrokeThickness = 1.5, Visibility = Visibility.Collapsed };
     private readonly Border _tip;
-    private readonly TextBlock _tipTitle = new() { FontWeight = FontWeights.SemiBold, Foreground = Brushes.White };
-    private readonly TextBlock _tipText = new() { Foreground = new SolidColorBrush(Color.FromRgb(0xD4, 0xD0, 0xE4)), FontSize = 11.5 };
+    private readonly TextBlock _tipTitle = new() { FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(Color.FromRgb(0x1D, 0x1D, 0x1F)) };
+    private readonly TextBlock _tipText = new() { Foreground = new SolidColorBrush(Color.FromRgb(0x6E, 0x6E, 0x73)), FontSize = 11.5 };
     private readonly TextBlock _empty = new()
     {
         Text = "Lance un scan pour voir la carte de ton disque",
-        Foreground = new SolidColorBrush(Color.FromRgb(0x8A, 0x86, 0x9E)),
+        Foreground = new SolidColorBrush(Color.FromRgb(0xA1, 0xA1, 0xA6)),
         HorizontalAlignment = HorizontalAlignment.Center,
         VerticalAlignment = VerticalAlignment.Center,
         FontSize = 14,
@@ -40,7 +40,7 @@ public sealed class TreemapView : Grid
 
     public TreemapView()
     {
-        Background = new SolidColorBrush(Color.FromArgb(0x59, 0x0B, 0x09, 0x16));
+        Background = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF7));
         ClipToBounds = true;
         Children.Add(_image);
         Children.Add(_empty);
@@ -54,10 +54,11 @@ public sealed class TreemapView : Grid
         tipPanel.Children.Add(_tipText);
         _tip = new Border
         {
-            Background = new SolidColorBrush(Color.FromArgb(240, 0x1C, 0x17, 0x33)),
-            BorderBrush = (Brush)Application.Current.FindResource("GlassEdge"),
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(12),
+            Background = new SolidColorBrush(Color.FromArgb(250, 0xFF, 0xFF, 0xFF)),
+            BorderBrush = new SolidColorBrush(Color.FromArgb(0x26, 0, 0, 0)),
+            BorderThickness = new Thickness(0.5),
+            CornerRadius = new CornerRadius(10),
+            Effect = new System.Windows.Media.Effects.DropShadowEffect { BlurRadius = 18, ShadowDepth = 3, Opacity = 0.18 },
             Padding = new Thickness(10, 7, 10, 7),
             Child = tipPanel,
             Visibility = Visibility.Collapsed,
@@ -151,8 +152,8 @@ public sealed class TreemapView : Grid
             if (!r.IsLeaf)
             {
                 // Fond d'un dossier : visible à travers les marges entre ses enfants.
-                int shade = Math.Max(0x10, 0x2C - r.Depth * 4);
-                int c = unchecked((int)(0xA0000000 | (uint)(shade << 16) | (uint)((shade - 4) << 8) | (uint)(shade + 16)));
+                int shade = Math.Max(0xC4, 0xE6 - r.Depth * 6);
+                int c = unchecked((int)(0xFF000000 | (uint)(shade << 16) | (uint)(shade << 8) | (uint)Math.Min(255, shade + 6)));
                 for (int y = y0; y < y1; y++) Array.Fill(px, c, y * w + x0, x1 - x0);
                 continue;
             }
@@ -172,7 +173,7 @@ public sealed class TreemapView : Grid
                 {
                     double tx = (x - x0) / rw;
                     // Léger relief : plus clair en haut à gauche, plus sombre en bas à droite.
-                    double f = 1.22 - 0.38 * ty - 0.16 * tx;
+                    double f = 1.10 - 0.16 * ty - 0.06 * tx;
                     int cr = Math.Min(255, (int)(br * f)), cg = Math.Min(255, (int)(bg * f)), cb = Math.Min(255, (int)(bb * f));
                     px[row + x] = unchecked((int)(0xFF000000 | (uint)(cr << 16) | (uint)(cg << 8) | (uint)cb));
                 }
