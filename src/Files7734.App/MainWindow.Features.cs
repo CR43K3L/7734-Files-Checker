@@ -67,6 +67,10 @@ public partial class MainWindow
         Item(file, "Quitter", "Alt+F4", Close, registerShortcut: false);
 
         var opt = TopMenu("_Options");
+        Check(opt, "theme:System", "Thème : comme Windows", null, () => SetTheme(ThemeMode.System));
+        Check(opt, "theme:Light", "Thème : clair", null, () => SetTheme(ThemeMode.Light));
+        Check(opt, "theme:Dark", "Thème : sombre", "Ctrl+T", () => SetTheme(_settings.Theme == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark));
+        Sep(opt);
         Check(opt, "unit:Auto", "Afficher les tailles automatiquement", null, () => SetUnit(SizeUnit.Auto));
         Check(opt, "unit:Bytes", "Afficher en octets", null, () => SetUnit(SizeUnit.Bytes));
         Check(opt, "unit:KB", "Afficher en Ko", null, () => SetUnit(SizeUnit.KB));
@@ -371,6 +375,15 @@ public partial class MainWindow
         ApplyViewOptions();
     }
 
+    private void SetTheme(ThemeMode mode)
+    {
+        _settings.Theme = mode;
+        _settings.Save();
+        Theme.Apply(mode);
+        RefreshAllTexts();
+        ApplyViewOptions();
+    }
+
     private void Toggle(Action<AppSettings> change)
     {
         change(_settings);
@@ -411,6 +424,7 @@ public partial class MainWindow
         AppSettings.Delete();
         _settings = new AppSettings();
         ByteSize.Unit = _settings.Unit;
+        Theme.Apply(_settings.Theme);
         RefreshAllTexts();
         ApplyViewOptions();
     }
@@ -422,6 +436,9 @@ public partial class MainWindow
         {
             item.IsChecked = key switch
             {
+                "theme:System" => _settings.Theme == ThemeMode.System,
+                "theme:Light" => _settings.Theme == ThemeMode.Light,
+                "theme:Dark" => _settings.Theme == ThemeMode.Dark,
                 "unit:Auto" => _settings.Unit == SizeUnit.Auto,
                 "unit:Bytes" => _settings.Unit == SizeUnit.Bytes,
                 "unit:KB" => _settings.Unit == SizeUnit.KB,

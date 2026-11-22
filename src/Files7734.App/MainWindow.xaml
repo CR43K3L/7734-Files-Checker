@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Files7734.App"
         Title="7734 Files Checker" Height="840" Width="1380" MinWidth="900" MinHeight="560"
-        Icon="app.ico" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{StaticResource TextBrush}"
-        Background="#E8E8ED" WindowStartupLocation="CenterScreen" UseLayoutRounding="True">
+        Icon="app.ico" FontFamily="Segoe UI Variable Text, Segoe UI" FontSize="13" Foreground="{DynamicResource TextBrush}"
+        Background="{DynamicResource SidebarBrush}" WindowStartupLocation="CenterScreen" UseLayoutRounding="True">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="40" ResizeBorderThickness="6" GlassFrameThickness="-1" CornerRadius="0" UseAeroCaptionButtons="False"/>
     </WindowChrome.WindowChrome>
@@ -21,18 +21,18 @@
                 <Image Source="app.ico" Width="28" Height="28" Margin="0,0,10,0"/>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="7734 Files Checker" FontSize="14" FontWeight="SemiBold"/>
-                    <TextBlock Text="Analyseur d'espace disque" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                    <TextBlock Text="Analyseur d'espace disque" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
                 </StackPanel>
             </StackPanel>
 
             <!-- Bas de la barre latérale : mode admin -->
-            <Border DockPanel.Dock="Bottom" x:Name="AdminBanner" Background="#14FF9500" CornerRadius="10" Padding="12,10" Visibility="Collapsed">
+            <Border DockPanel.Dock="Bottom" x:Name="AdminBanner" Background="{DynamicResource WarningBgBrush}" CornerRadius="10" Padding="12,10" Visibility="Collapsed">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                        <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource IconFont}" Foreground="#C93400" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                        <TextBlock Text="Mode classique" FontWeight="SemiBold" Foreground="#C93400"/>
+                        <TextBlock Text="&#xE7BA;" FontFamily="{StaticResource IconFont}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                        <TextBlock Text="Mode classique" FontWeight="SemiBold" Foreground="{DynamicResource WarningTextBrush}"/>
                     </StackPanel>
-                    <TextBlock x:Name="AdminBannerText" TextWrapping="Wrap" FontSize="11.5" Foreground="{StaticResource MutedBrush}"
+                    <TextBlock x:Name="AdminBannerText" TextWrapping="Wrap" FontSize="11.5" Foreground="{DynamicResource MutedBrush}"
                                Text="Sans les droits administrateur, le scan est plus lent."/>
                     <Button Style="{StaticResource LinkButton}" Margin="-10,4,0,-6" Click="RestartAdmin_Click" HorizontalAlignment="Left">
                         <TextBlock Text="Relancer en administrateur" FontSize="12" FontWeight="SemiBold"/>
@@ -49,7 +49,7 @@
                 </Button>
             </StackPanel>
 
-            <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource FaintBrush}" Margin="10,0,0,6"/>
+            <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
             <ListBox x:Name="DriveList" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource SidebarItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      MouseDoubleClick="DriveList_MouseDoubleClick" SelectionChanged="DriveList_SelectionChanged">
@@ -60,17 +60,17 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{StaticResource AccentBrush}"
+                            <TextBlock Text="&#xEDA2;" FontFamily="{StaticResource IconFont}" FontSize="18" Foreground="{DynamicResource AccentBrush}"
                                        VerticalAlignment="Top" Margin="0,2,10,0"/>
                             <StackPanel Grid.Column="1">
                                 <TextBlock TextTrimming="CharacterEllipsis">
                                     <Run Text="{Binding Label, Mode=OneWay}" FontWeight="SemiBold"/>
-                                    <Run Text="{Binding Letter, Mode=OneWay}" Foreground="{StaticResource MutedBrush}"/>
+                                    <Run Text="{Binding Letter, Mode=OneWay}" Foreground="{DynamicResource MutedBrush}"/>
                                 </TextBlock>
-                                <Border Height="4" CornerRadius="2" Background="{StaticResource TrackBrush}" Margin="0,6,0,5" Width="150" HorizontalAlignment="Left">
+                                <Border Height="4" CornerRadius="2" Background="{DynamicResource TrackBrush}" Margin="0,6,0,5" Width="150" HorizontalAlignment="Left">
                                     <Border HorizontalAlignment="Left" Width="{Binding BarWidth}" CornerRadius="2" Background="{Binding BarBrush}"/>
                                 </Border>
-                                <TextBlock Text="{Binding UsageText}" FontSize="11" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
+                                <TextBlock Text="{Binding UsageText}" FontSize="11" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
@@ -79,7 +79,7 @@
         </DockPanel>
 
         <!-- ═════════ Zone principale ═════════ -->
-        <Border Grid.Column="1" Background="{StaticResource ContentBrush}" BorderBrush="#14000000" BorderThickness="1,0,0,0">
+        <Border Grid.Column="1" Background="{DynamicResource ContentBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1,0,0,0">
             <Grid Margin="22,0,22,14">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="40"/>
@@ -103,7 +103,7 @@
 
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
                         <StackPanel VerticalAlignment="Center" Width="230" Margin="0,0,14,0">
-                            <TextBlock x:Name="ProgressText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
+                            <TextBlock x:Name="ProgressText" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"/>
                             <ProgressBar x:Name="Progress" Margin="0,6,0,0" Minimum="0" Maximum="1" Visibility="Collapsed"/>
                         </StackPanel>
                         <Button x:Name="CancelButton" Style="{StaticResource PlainButton}" Click="CancelButton_Click" Visibility="Collapsed" Content="Annuler" Margin="0,0,8,0"/>
@@ -119,26 +119,26 @@
 
                     <StackPanel VerticalAlignment="Top">
                         <TextBlock x:Name="HeaderTitle" Text="Bienvenue" FontSize="22" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
-                        <TextBlock x:Name="HeaderSub" Text="Choisis un disque à gauche puis clique sur Analyser." Foreground="{StaticResource MutedBrush}"
+                        <TextBlock x:Name="HeaderSub" Text="Choisis un disque à gauche puis clique sur Analyser." Foreground="{DynamicResource MutedBrush}"
                                    FontSize="12.5" Margin="0,2,0,0" TextTrimming="CharacterEllipsis"/>
                         <!-- Résumé du disque -->
                         <WrapPanel x:Name="DriveStats" Margin="0,12,0,0" Visibility="Collapsed">
-                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                            <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
                                 <StackPanel><TextBlock Text="Espace total" Style="{StaticResource StatLabel}"/><TextBlock x:Name="StatTotal" Style="{StaticResource StatValue}"/></StackPanel>
                             </Border>
-                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                            <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
                                 <StackPanel>
                                     <TextBlock Text="Espace utilisé" Style="{StaticResource StatLabel}"/>
-                                    <TextBlock Style="{StaticResource StatValue}"><Run x:Name="StatUsed"/><Run x:Name="StatUsedPct" FontWeight="Normal" Foreground="{StaticResource MutedBrush}" FontSize="12"/></TextBlock>
+                                    <TextBlock Style="{StaticResource StatValue}"><Run x:Name="StatUsed"/><Run x:Name="StatUsedPct" FontWeight="Normal" Foreground="{DynamicResource MutedBrush}" FontSize="12"/></TextBlock>
                                 </StackPanel>
                             </Border>
-                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1">
+                            <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
                                 <StackPanel>
                                     <TextBlock Text="Espace libre" Style="{StaticResource StatLabel}"/>
-                                    <TextBlock Style="{StaticResource StatValue}" Foreground="#248A3D"><Run x:Name="StatFree"/><Run x:Name="StatFreePct" FontWeight="Normal" Foreground="{StaticResource MutedBrush}" FontSize="12"/></TextBlock>
+                                    <TextBlock Style="{StaticResource StatValue}" Foreground="{DynamicResource SuccessBrush}"><Run x:Name="StatFree"/><Run x:Name="StatFreePct" FontWeight="Normal" Foreground="{DynamicResource MutedBrush}" FontSize="12"/></TextBlock>
                                 </StackPanel>
                             </Border>
-                            <Border Background="White" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="#0F000000" BorderThickness="1"
+                            <Border Background="{DynamicResource CardBrush}" CornerRadius="10" Padding="14,7" Margin="0,0,10,0" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
                                     ToolTip="Espace utilisé par Windows mais non visible dans les fichiers (réserve système, métadonnées…)">
                                 <StackPanel><TextBlock Text="Espace réservé" Style="{StaticResource StatLabel}"/><TextBlock x:Name="StatReserved" Style="{StaticResource StatValue}"/></StackPanel>
                             </Border>
@@ -186,10 +186,10 @@
                                         <GridViewColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal">
-                                                    <Border Width="56" Height="8" Background="{StaticResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
-                                                        <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{StaticResource AccentGradient}" CornerRadius="4"/>
+                                                    <Border Width="56" Height="8" Background="{DynamicResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
+                                                        <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{DynamicResource AccentGradient}" CornerRadius="4"/>
                                                     </Border>
-                                                    <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
+                                                    <TextBlock Text="{Binding PercentText}" Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
                                                 </StackPanel>
                                             </DataTemplate>
                                         </GridViewColumn.CellTemplate>
@@ -211,7 +211,7 @@
                                     </GridViewColumn>
                                     <GridViewColumn Header="Modifié" Width="120">
                                         <GridViewColumn.CellTemplate>
-                                            <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{StaticResource MutedBrush}"/></DataTemplate>
+                                            <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{DynamicResource MutedBrush}"/></DataTemplate>
                                         </GridViewColumn.CellTemplate>
                                     </GridViewColumn>
                                 </GridView>
@@ -246,10 +246,10 @@
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
-                                                            <Border Width="56" Height="8" Background="{StaticResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
+                                                            <Border Width="56" Height="8" Background="{DynamicResource TrackBrush}" CornerRadius="4" VerticalAlignment="Center">
                                                                 <Border HorizontalAlignment="Left" Width="{Binding PercentBarWidth}" Background="{Binding Swatch}" CornerRadius="4"/>
                                                             </Border>
-                                                            <TextBlock Text="{Binding PercentText}" Foreground="{StaticResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
+                                                            <TextBlock Text="{Binding PercentText}" Foreground="{DynamicResource MutedBrush}" Margin="8,0,0,0" FontSize="12"/>
                                                         </StackPanel>
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
@@ -286,12 +286,12 @@
                                             </GridViewColumn>
                                             <GridViewColumn Header="Dossier" Width="320">
                                                 <GridViewColumn.CellTemplate>
-                                                    <DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
                                             <GridViewColumn Header="Modifié" Width="120">
                                                 <GridViewColumn.CellTemplate>
-                                                    <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{StaticResource MutedBrush}"/></DataTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{DynamicResource MutedBrush}"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
                                         </GridView>
@@ -321,12 +321,12 @@
                                             </GridViewColumn>
                                             <GridViewColumn Header="Dossier" Width="320">
                                                 <GridViewColumn.CellTemplate>
-                                                    <DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding Folder}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
                                             <GridViewColumn Header="Modifié" Width="120">
                                                 <GridViewColumn.CellTemplate>
-                                                    <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{StaticResource MutedBrush}"/></DataTemplate>
+                                                    <DataTemplate><TextBlock Text="{Binding ModifiedText}" Foreground="{DynamicResource MutedBrush}"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
                                         </GridView>
@@ -359,7 +359,7 @@
                 </Grid>
 
                 <DockPanel Grid.Row="3" Margin="4,12,4,0">
-                    <TextBlock x:Name="StatusText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                    <TextBlock x:Name="StatusText" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"
                                Text="Prêt."/>
                 </DockPanel>
             </Grid>

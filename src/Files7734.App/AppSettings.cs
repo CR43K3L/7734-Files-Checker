@@ -7,6 +7,7 @@ namespace Files7734.App;
 public sealed class AppSettings
 {
     public SizeUnit Unit { get; set; } = SizeUnit.Auto;
+    public ThemeMode Theme { get; set; } = ThemeMode.Dark;
     public bool AutoScanOnSelect { get; set; }
     public bool ShowHeader { get; set; } = true;
     public bool ShowFileTypes { get; set; } = true;

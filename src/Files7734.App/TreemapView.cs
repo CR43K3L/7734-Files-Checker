@@ -68,6 +68,9 @@ public sealed class TreemapView : Grid
         };
         _overlay.Children.Add(_tip);
 
+        ApplyThemeColors();
+        Theme.Changed += () => { ApplyThemeColors(); Render(); };
+
         _resizeTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); Render(); };
         SizeChanged += (_, _) => { _resizeTimer.Stop(); _resizeTimer.Start(); };
@@ -115,6 +118,17 @@ public sealed class TreemapView : Grid
         }
     }
 
+    private void ApplyThemeColors()
+    {
+        bool dark = Theme.IsDark;
+        Background = new SolidColorBrush(dark ? Color.FromRgb(0x1C, 0x1C, 0x1E) : Color.FromRgb(0xF5, 0xF5, 0xF7));
+        _tip.Background = new SolidColorBrush(dark ? Color.FromArgb(250, 0x2C, 0x2C, 0x2E) : Color.FromArgb(250, 0xFF, 0xFF, 0xFF));
+        _tip.BorderBrush = new SolidColorBrush(dark ? Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x26, 0, 0, 0));
+        _tipTitle.Foreground = new SolidColorBrush(dark ? Color.FromRgb(0xF5, 0xF5, 0xF7) : Color.FromRgb(0x1D, 0x1D, 0x1F));
+        _tipText.Foreground = new SolidColorBrush(dark ? Color.FromRgb(0xA1, 0xA1, 0xA6) : Color.FromRgb(0x6E, 0x6E, 0x73));
+        _empty.Foreground = new SolidColorBrush(dark ? Color.FromRgb(0x6E, 0x6E, 0x73) : Color.FromRgb(0xA1, 0xA1, 0xA6));
+    }
+
     /// <summary>Redessine la carte (après un scan, une suppression…).</summary>
     public async void Render()
     {
@@ -135,12 +149,13 @@ public sealed class TreemapView : Grid
         int ph = Math.Max(1, (int)Math.Round(ActualHeight * dpi.DpiScaleY));
 
         bool useAllocated = UseAllocated;
+        bool dark = Theme.IsDark;
         FsNode? freeNode = null;
         var layoutRoot = FreeSpaceBytes is long free && free > 0 ? FsTree.CreateFreeSpaceView(root, free, out freeNode) : root;
         var (pixels, rects) = await Task.Run(() =>
         {
             var r = TreemapLayout.Layout(layoutRoot, pw, ph, useAllocated: useAllocated);
-            return (Paint(r, pw, ph), r);
+            return (Paint(r, pw, ph, dark), r);
         });
         if (version != _version) return; // un rendu plus récent a été demandé entre-temps
 
@@ -157,7 +172,7 @@ public sealed class TreemapView : Grid
         UpdateSelection();
     }
 
-    private static int[] Paint(List<TreemapRect> rects, int w, int h)
+    private static int[] Paint(List<TreemapRect> rects, int w, int h, bool dark)
     {
         var px = new int[w * h];
         // fond transparent : le verre reste visible entre les rectangles
@@ -170,7 +185,7 @@ public sealed class TreemapView : Grid
             if (!r.IsLeaf)
             {
                 // Fond d'un dossier : visible à travers les marges entre ses enfants.
-                int shade = Math.Max(0xC4, 0xE6 - r.Depth * 6);
+                int shade = dark ? Math.Max(0x22, 0x40 - r.Depth * 5) : Math.Max(0xC4, 0xE6 - r.Depth * 6);
                 int c = unchecked((int)(0xFF000000 | (uint)(shade << 16) | (uint)(shade << 8) | (uint)Math.Min(255, shade + 6)));
                 for (int y = y0; y < y1; y++) Array.Fill(px, c, y * w + x0, x1 - x0);
                 continue;
@@ -184,7 +199,9 @@ public sealed class TreemapView : Grid
                 // Espace libre : hachures grises discrètes.
                 for (int y = y0; y < y1; y++)
                     for (int x = x0; x < x1; x++)
-                        px[y * w + x] = ((x + y) / 6 % 2 == 0) ? unchecked((int)0xFFEDEDF0) : unchecked((int)0xFFE2E2E7);
+                        px[y * w + x] = ((x + y) / 6 % 2 == 0)
+                            ? unchecked((int)(dark ? 0xFF303033 : 0xFFEDEDF0))
+                            : unchecked((int)(dark ? 0xFF28282A : 0xFFE2E2E7));
                 continue;
             }
             uint baseColor = ExtensionColors.ColorOf(r.Node);
@@ -351,7 +368,7 @@ public sealed class TreemapView : Grid
                 }
                 var free = rects.FirstOrDefault(r => r.Node.IsVirtual && r.Depth == 1);
                 if (free.Node != null && free.W / sx >= 80 && free.H / sy >= 17)
-                    _items.Add((new Rect(free.X / sx, free.Y / sy, free.W / sx, free.H / sy), "Espace libre · " + ByteSize.Format(free.Node.Size), true));
+                    _items.Add((new Rect(free.X / sx, free.Y / sy, free.W / sx, free.H / sy), "Espace libre · " + ByteSize.Format(free.Node.Size), !Theme.IsDark));
             }
             InvalidateVisual();
         }

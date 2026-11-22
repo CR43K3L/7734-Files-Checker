@@ -54,7 +54,7 @@ public partial class MainWindow : Window
         };
 
         LoadDrives();
-        SourceInitialized += (_, _) => GlassEffect.Apply(this);
+        SourceInitialized += (_, _) => WindowFrame.Apply(this);
         StateChanged += (_, _) => UpdateWindowState();
 
         InitFeatures();
