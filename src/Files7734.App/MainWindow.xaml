@@ -50,7 +50,7 @@
             </StackPanel>
 
             <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
-            <ListBox x:Name="DriveList" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource SidebarItem}"
+            <ListBox x:Name="DriveList" Background="Transparent" Foreground="{DynamicResource TextBrush}" BorderThickness="0" ItemContainerStyle="{StaticResource SidebarItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      MouseDoubleClick="DriveList_MouseDoubleClick" SelectionChanged="DriveList_SelectionChanged">
                 <ListBox.ItemTemplate>
@@ -227,7 +227,7 @@
                                 <ListView x:Name="ExtList" SelectionMode="Single">
                                     <ListView.View>
                                         <GridView>
-                                            <GridViewColumn Header="Extension" Width="150">
+                                            <GridViewColumn Header="Extension" Width="120">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
@@ -242,7 +242,7 @@
                                                     <DataTemplate><TextBlock Text="{Binding SizeText}" Style="{StaticResource Num}" FontWeight="SemiBold"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="%" Width="118">
+                                            <GridViewColumn Header="%" Width="112">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate>
                                                         <StackPanel Orientation="Horizontal">
@@ -254,7 +254,7 @@
                                                     </DataTemplate>
                                                 </GridViewColumn.CellTemplate>
                                             </GridViewColumn>
-                                            <GridViewColumn Header="Fichiers" Width="80">
+                                            <GridViewColumn Header="Fichiers" Width="74">
                                                 <GridViewColumn.CellTemplate>
                                                     <DataTemplate><TextBlock Text="{Binding CountText}" Style="{StaticResource MutedNum}"/></DataTemplate>
                                                 </GridViewColumn.CellTemplate>

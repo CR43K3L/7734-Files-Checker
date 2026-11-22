@@ -256,7 +256,7 @@ public sealed class TreemapView : Grid
         // Si l'élément sélectionné est trop petit pour être dessiné, on encadre son parent visible le plus proche.
         for (var n = _selected; n != null; n = n.Parent)
         {
-            if (n == _root && n != _selected) break;
+            if (n == _root) break; // la racine occupe toute la carte : inutile de l'encadrer
             if (TryGetRect(n, out var rect))
             {
                 Place(_selection, rect);

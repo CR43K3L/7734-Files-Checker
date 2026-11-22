@@ -584,6 +584,12 @@ internal static class RenameDialog
             ShowInTaskbar = false,
             FontFamily = owner.FontFamily,
         };
+        win.SetResourceReference(Control.BackgroundProperty, "CardBrush");
+        win.SetResourceReference(Control.ForegroundProperty, "TextBrush");
+        box.SetResourceReference(Control.BackgroundProperty, "InputBrush");
+        box.SetResourceReference(Control.ForegroundProperty, "TextBrush");
+        box.SetResourceReference(TextBox.CaretBrushProperty, "TextBrush");
+        win.SourceInitialized += (_, _) => WindowFrame.Apply(win);
         ok.Click += (_, _) => win.DialogResult = true;
         win.Loaded += (_, _) =>
         {
