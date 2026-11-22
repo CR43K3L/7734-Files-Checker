@@ -50,7 +50,7 @@
             </StackPanel>
 
             <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
-            <ListBox x:Name="DriveList" Background="Transparent" Foreground="{DynamicResource TextBrush}" BorderThickness="0" ItemContainerStyle="{StaticResource SidebarItem}"
+            <ListBox x:Name="DriveList" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource SidebarItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      MouseDoubleClick="DriveList_MouseDoubleClick" SelectionChanged="DriveList_SelectionChanged">
                 <ListBox.ItemTemplate>

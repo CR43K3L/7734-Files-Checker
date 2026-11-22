@@ -125,3 +125,23 @@ public static class Search
         return list;
     }
 }
+
+public static class OldFiles
+{
+    /// <summary>Fichiers non modifiés depuis <paramref name="olderThanUtc"/>, du plus gros au plus petit.</summary>
+    public static List<FsNode> Find(FsNode root, DateTime olderThanUtc, long minSize = 1024 * 1024, int max = 5000)
+    {
+        var heap = new PriorityQueue<FsNode, long>();
+        foreach (var f in Analysis.EnumerateFiles(root))
+        {
+            if (f.IsVirtual || f.Size < minSize || f.LastModifiedUtc == default || f.LastModifiedUtc >= olderThanUtc) continue;
+            if (f.Name.StartsWith('$') && f.Parent?.Parent == null) continue; // fichiers système NTFS à la racine
+            if (heap.Count < max) heap.Enqueue(f, f.Size);
+            else if (f.Size > heap.Peek().Size) heap.EnqueueDequeue(f, f.Size);
+        }
+        var list = new List<FsNode>(heap.Count);
+        while (heap.Count > 0) list.Add(heap.Dequeue());
+        list.Reverse();
+        return list;
+    }
+}

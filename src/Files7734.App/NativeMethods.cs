@@ -27,13 +27,16 @@ internal static class NativeMethods
     }
 
     /// <summary>Envoie un fichier ou un dossier à la corbeille. Renvoie true si l'opération a réussi.</summary>
-    public static bool SendToRecycleBin(string path, IntPtr owner)
+    public static bool SendToRecycleBin(string path, IntPtr owner) => SendToRecycleBin(new[] { path }, owner);
+
+    /// <summary>Envoie plusieurs éléments à la corbeille en une seule opération.</summary>
+    public static bool SendToRecycleBin(IEnumerable<string> paths, IntPtr owner)
     {
         var op = new SHFILEOPSTRUCT
         {
             hwnd = owner,
             wFunc = FO_DELETE,
-            pFrom = path + "\0\0",
+            pFrom = string.Join("\0", paths) + "\0\0",
             fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMATION | FOF_WANTNUKEWARNING,
         };
         int rc = SHFileOperationW(ref op);
@@ -49,6 +52,30 @@ internal static class NativeMethods
     {
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
     }
+
+    /// <summary>Taille actuelle de la corbeille (tous les disques).</summary>
+    public static long RecycleBinSize()
+    {
+        var info = new SHQUERYRBINFO { cbSize = Marshal.SizeOf<SHQUERYRBINFO>() };
+        return SHQueryRecycleBinW(null, ref info) == 0 ? info.i64Size : 0;
+    }
+
+    public static bool EmptyRecycleBin(IntPtr owner) =>
+        SHEmptyRecycleBinW(owner, null, 0x1 | 0x2 | 0x4) is 0 or unchecked((int)0x8000FFFF); // déjà vide = OK
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    private struct SHQUERYRBINFO
+    {
+        public int cbSize;
+        public long i64Size;
+        public long i64NumItems;
+    }
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHQueryRecycleBinW(string? root, ref SHQUERYRBINFO info);
+
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern int SHEmptyRecycleBinW(IntPtr hwnd, string? root, uint flags);
 
     private const uint FO_DELETE = 3;
     private const ushort FOF_NOCONFIRMATION = 0x0010;
