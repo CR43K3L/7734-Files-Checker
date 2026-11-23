@@ -72,7 +72,11 @@ public class FolderMoverTests
             Assert.Equal("bonjour", File.ReadAllText(Path.Combine(src, "data", "x.txt"))); // via le lien
             Assert.False(Directory.Exists(src + ".7734-deplacement"));
         }
-        finally { Directory.Delete(root, true); }
+        finally
+        {
+            try { Directory.Delete(src); } catch (Exception) { } // le lien d'abord (sans toucher à sa cible)
+            Directory.Delete(root, true);
+        }
     }
 
     [Fact]

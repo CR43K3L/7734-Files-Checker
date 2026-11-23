@@ -5,6 +5,9 @@ namespace Files7734.Tests;
 
 public class CsvAndToolsTests : IDisposable
 {
+    // Les guillemets sont interdits dans les noms de fichiers Windows.
+    private static readonly string OddName = OperatingSystem.IsWindows() ? "x;'bizarre' ,é.bin" : "x;\"bizarre\".bin";
+
     private readonly string _dir = Directory.CreateTempSubdirectory("7734-csv-").FullName;
 
     public void Dispose()
@@ -16,7 +19,7 @@ public class CsvAndToolsTests : IDisposable
     private FsNode Sample()
     {
         Directory.CreateDirectory(Path.Combine(_dir, "a", "b"));
-        File.WriteAllBytes(Path.Combine(_dir, "a", "b", "x;\"bizarre\".bin"), new byte[3000]);
+        File.WriteAllBytes(Path.Combine(_dir, "a", "b", OddName), new byte[3000]);
         File.WriteAllBytes(Path.Combine(_dir, "a", "y.txt"), new byte[10]);
         File.WriteAllBytes(Path.Combine(_dir, "z.iso"), new byte[50000]);
         return DirectoryWalkScanner.Scan(_dir);
@@ -34,8 +37,8 @@ public class CsvAndToolsTests : IDisposable
         Assert.Equal(root.FileCount, back.FileCount);
         Assert.Equal(root.FolderCount, back.FolderCount);
         var odd = Analysis.EnumerateFiles(back).Single(f => f.Name.StartsWith("x;"));
-        Assert.Equal("x;\"bizarre\".bin", odd.Name);
-        Assert.Equal(Path.Combine(_dir, "a", "b", "x;\"bizarre\".bin"), odd.FullPath);
+        Assert.Equal(OddName, odd.Name);
+        Assert.Equal(Path.Combine(_dir, "a", "b", OddName), odd.FullPath);
     }
 
     [Fact]

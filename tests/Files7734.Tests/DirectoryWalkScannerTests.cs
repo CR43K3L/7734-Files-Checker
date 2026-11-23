@@ -49,7 +49,8 @@ public class DirectoryWalkScannerTests : IDisposable
         Write("x/y/z.bin", 100);
         var res = DiskScanner.Scan(Path.Combine(_dir, "x"));
         Assert.Equal(100, res.Root.Size);
-        Assert.Equal(ScanMethod.DirectoryWalk, res.Method);
+        // Sous Windows en administrateur, la lecture directe de la table NTFS est utilisée : les deux sont valables.
+        Assert.Contains(res.Method, new[] { ScanMethod.DirectoryWalk, ScanMethod.Mft });
     }
 
     [Theory]
