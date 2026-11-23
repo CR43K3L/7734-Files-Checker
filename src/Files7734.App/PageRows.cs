@@ -64,6 +64,11 @@ public sealed class GameRow : INotifyPropertyChanged
     public string PercentText => Size == null ? "" : Fmt.Percent(Percent);
     public double BarWidth => Math.Max(0, Math.Min(56, 56 * Percent / 100));
 
+    /// <summary>Renseigné quand le même jeu est installé ailleurs (autre lanceur ou autre disque).</summary>
+    public string? DuplicateOf { get; set; }
+    public Visibility DuplicateVisibility => DuplicateOf != null ? Visibility.Visible : Visibility.Collapsed;
+    public string? DuplicateTip => DuplicateOf == null ? null : "Aussi installé ici : " + DuplicateOf;
+
     public void SetSize(long size) { Size = size; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty)); }
     public void SetPercent(double p) { Percent = p; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty)); }
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -141,4 +146,58 @@ public sealed class ChangeRow
         ChangeKind.Grown => "A grossi",
         _ => "A diminué",
     };
+}
+
+public sealed class AppRow
+{
+    public AppRow(SystemTools2.InstalledApp app, long? measured) { App = app; Size = measured ?? app.EstimatedSize; }
+    public SystemTools2.InstalledApp App { get; }
+    public long Size { get; }
+    public string Name => App.Name;
+    public string Publisher => App.Publisher ?? "";
+    public string Version => App.Version ?? "";
+    public string SizeText => Size > 0 ? ByteSize.Format(Size) : "";
+    public string DateText => App.InstallDate?.ToString("dd/MM/yyyy", Fmt.Fr) ?? "";
+    public bool HasFolder => App.InstallLocation != null && System.IO.Directory.Exists(App.InstallLocation);
+}
+
+public sealed class CaptureRow : CheckRow
+{
+    public CaptureRow(System.IO.FileInfo file) => File = file;
+    public System.IO.FileInfo File { get; }
+    public string Name => File.Name;
+    public long Size => File.Length;
+    public string SizeText => ByteSize.Format(File.Length);
+    public string Folder => File.DirectoryName ?? "";
+    public string ModifiedText => Fmt.Date(File.LastWriteTimeUtc);
+    public Brush Swatch => ExtensionColors.BrushFor(File.Extension.ToLowerInvariant());
+}
+
+public sealed class GhostRow : CheckRow
+{
+    public GhostRow(string path, long size, string reason) { Path = path; Size = size; Reason = reason; }
+    public string Path { get; }
+    public long Size { get; }
+    public string Reason { get; }
+    public string Name => System.IO.Path.GetFileName(Path.TrimEnd('\\'));
+    public string SizeText => ByteSize.Format(Size);
+}
+
+/// <summary>Une proposition de l'assistant « Faire de la place ».</summary>
+public sealed class SpaceRow : CheckRow
+{
+    private string _state = "";
+    private bool _error;
+    public SpaceRow(string title, string detail, long size, Func<Task<(long Freed, string Message)>> apply)
+    { Title = title; Detail = detail; Size = size; Apply = apply; }
+    public string Title { get; }
+    public string Detail { get; }
+    public long Size { get; }
+    public Func<Task<(long Freed, string Message)>> Apply { get; }
+    public bool Done { get; private set; }
+    public string SizeText => ByteSize.Format(Size);
+    public override bool CanCheck => !Done && Size > 0;
+    public string StateText => _state;
+    public Brush StateBrush => (Brush)Application.Current.Resources[_error ? "WarningTextBrush" : "SuccessBrush"];
+    public void SetState(string text, bool error = false, bool done = false) { _state = text; _error = error; Done |= done; RefreshAll(); }
 }

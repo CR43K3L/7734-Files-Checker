@@ -34,6 +34,23 @@ internal static class GameDetector
 
     // ───────────── Steam ─────────────
 
+    /// <summary>Dossiers des bibliothèques Steam (ex. « D:\SteamLibrary »).</summary>
+    public static List<string> SteamLibraryPaths()
+    {
+        try
+        {
+            string? steam = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string
+                         ?? Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath", null) as string;
+            if (string.IsNullOrEmpty(steam)) return new();
+            steam = steam.Replace('/', '\\');
+            var libs = new List<string> { steam };
+            string vdf = Path.Combine(steam, "steamapps", "libraryfolders.vdf");
+            if (File.Exists(vdf)) libs.AddRange(GameParsers.SteamLibraries(File.ReadAllText(vdf)));
+            return libs.Where(l => Directory.Exists(Path.Combine(l, "steamapps"))).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+        catch (Exception) { return new(); }
+    }
+
     private static void Steam(List<GameInfo> games)
     {
         string? steam = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Valve\Steam", "SteamPath", null) as string

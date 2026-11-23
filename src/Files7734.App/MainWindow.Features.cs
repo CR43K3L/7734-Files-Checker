@@ -94,6 +94,9 @@ public partial class MainWindow
         Check(opt, "monitor", "Surveiller l'espace disque en arrière-plan", null, ToggleMonitor);
         Check(opt, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
         Sep(opt);
+        Item(opt, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));
+        Item(opt, "Page GitHub du projet", null, () => NativeMethods.Open($"https://github.com/{GitHubRepo}"));
+        Sep(opt);
         Item(opt, "Réinitialiser les réglages", null, ResetSettings);
     }
 

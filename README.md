@@ -1,35 +1,33 @@
 # 7734 Files Checker
 
-Analyseur d'espace disque pour Windows : il montre en quelques secondes ce qui remplit ton disque.
+Analyseur d'espace disque pour Windows : il lit directement la table NTFS pour analyser un disque entier en quelques secondes, puis t'aide à faire de la place sans risque.
 
-## État
+## Télécharger
 
-- **Étape 1 (faite)** : moteur de scan
-  - lecture directe de la table NTFS (MFT) quand l'app est lancée en administrateur, comme les analyseurs les plus rapides ;
-  - scan classique dossier par dossier sinon (disques FAT/exFAT, réseau, pas de droits admin) ;
-  - gère les fichiers creux, compressés, stockés dans la MFT et les liens durs (comptés une seule fois).
-- **Étape 2 (faite)** : interface `7734FilesChecker.exe`
-  - arborescence triée par taille (pourcentage du parent, espace occupé, nombre de fichiers, date) ;
-  - carte en rectangles colorés par type de fichier (survol = détails, clic = sélection, double-clic = zoom) ;
-  - onglets « Types de fichiers » et « Plus gros fichiers » (1 000 premiers) ;
-  - clic droit : ouvrir, afficher dans l'Explorateur, copier le chemin, analyser ce dossier, envoyer à la corbeille ;
-  - demande les droits admin au démarrage pour le scan rapide, sinon scan classique avec un bouton pour relancer en admin.
-- Étape 3 : tests sur PC Windows
-- Étape 4 : diffusion via GitHub Releases
+Va dans [Releases](https://github.com/CR43K3L/7734-Files-Checker/releases/latest) et télécharge **7734FilesChecker.exe**. Il n'y a rien à installer : double-clique dessus.
 
-## Structure
+> Windows peut afficher « Windows a protégé votre ordinateur » parce que l'app est récente et pas encore signée. Clique sur **Informations complémentaires** puis **Exécuter quand même**.
 
-- `src/Files7734.Core` : moteur de scan et statistiques
-- `src/Files7734.App` : l'application Windows (WPF)
-- `src/Files7734.Cli` : petit outil console pour tester le moteur (`7734FilesChecker-Scan.exe`)
-- `tests/Files7734.Tests` : tests automatiques (dont une vraie petite image NTFS)
+L'app se met à jour toute seule : quand une nouvelle version sort, un bandeau apparaît en bas à gauche.
+
+## Fonctionnalités
+
+- **Analyse ultra-rapide** (lecture directe de la table NTFS en administrateur), arborescence, carte du disque avec zoom animé et fil d'Ariane, types de fichiers (clic = surbrillance sur la carte), plus gros fichiers, recherche, export CSV.
+- **Faire de la place** : tu dis combien de Go il te faut, l'app propose un plan.
+- **Jeux** : Steam, Epic, Riot, Battle.net, Ubisoft, EA, GOG, Rockstar, Xbox. Taille de chaque jeu, déplacement vers un autre disque sans réinstaller, nettoyage par jeu, restes de jeux désinstallés, jeux installés en double.
+- **Nettoyage** : caches, temporaires, Windows Update, navigateurs, Discord, lanceurs… rien n'est coché d'office.
+- **Doublons**, **vieux fichiers**, **captures et clips de jeux**, avec aperçu.
+- **Applications** : désinstallation et recherche des restes oubliés.
+- **Ce fichier est-il sûr ?** : signature numérique, indices de malware et vérification sur VirusTotal (seule l'empreinte est envoyée).
+- **Qui bloque ce fichier ?**, fichiers cachés de Windows (hibernation, mémoire virtuelle, points de restauration), **santé des disques**, nouveautés depuis la dernière analyse, alerte disque presque plein.
+- Thème sombre et clair.
 
 ## Compiler
 
-Il faut le SDK .NET 8 de Microsoft (celui des dépôts Ubuntu ne sait pas compiler WPF).
+.NET 8 SDK sous Windows :
 
 ```
-dotnet test
-dotnet publish src/Files7734.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish
-dotnet publish src/Files7734.Cli -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o publish
+dotnet publish src/Files7734.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true
 ```
+
+Tests : `dotnet test tests/Files7734.Tests`

@@ -14,11 +14,14 @@ public partial class MainWindow
     private readonly List<NavItem> _nav = new()
     {
         new("analysis", "", "Analyse"),
+        new("space", "\uE945", "Faire de la place"),
         new("games", "", "Jeux"),
         new("clean", "", "Nettoyage"),
         new("dupes", "", "Doublons"),
         new("old", "", "Vieux fichiers"),
         new("news", "", "Nouveautés"),
+        new("apps", "\uE71D", "Applications"),
+        new("caps", "\uE722", "Captures et clips"),
         new("system", "\uE770", "Fichiers Windows"),
         new("health", "\uE95E", "Santé des disques"),
     };
@@ -44,25 +47,29 @@ public partial class MainWindow
         _page = key;
         var nav = _nav.First(i => i.Key == key);
         if (NavList.SelectedItem != nav) NavList.SelectedItem = nav;
-        AnalysisPage.Visibility = key == "analysis" ? Visibility.Visible : Visibility.Collapsed;
-        GamesPage.Visibility = key == "games" ? Visibility.Visible : Visibility.Collapsed;
-        CleanPage.Visibility = key == "clean" ? Visibility.Visible : Visibility.Collapsed;
-        DupesPage.Visibility = key == "dupes" ? Visibility.Visible : Visibility.Collapsed;
-        OldPage.Visibility = key == "old" ? Visibility.Visible : Visibility.Collapsed;
-        NewsPage.Visibility = key == "news" ? Visibility.Visible : Visibility.Collapsed;
-        SystemPage.Visibility = key == "system" ? Visibility.Visible : Visibility.Collapsed;
-        HealthPage.Visibility = key == "health" ? Visibility.Visible : Visibility.Collapsed;
+        foreach (var (k, page) in Pages()) page.Visibility = k == key ? Visibility.Visible : Visibility.Collapsed;
 
         switch (key)
         {
             case "games" when _games == null: LoadGames(); break;
             case "clean" when _clean.Count == 0: MeasureCleanup(); break;
             case "old" when _oldDirty: RefreshOld(); break;
-            case "news": _nav[5].Badge = ""; break;
+            case "news": Nav("news").Badge = ""; break;
             case "system" when !_systemLoaded: LoadSystemFiles(); break;
             case "health" when !_healthLoaded: LoadHealth(); break;
+            case "apps" when !_appsLoaded: LoadApps(); break;
+            case "caps" when !_capsLoaded: LoadCaptures(); break;
+            case "space": PrepareSpace(); break;
         }
     }
+
+    private NavItem Nav(string key) => _nav.First(n => n.Key == key);
+
+    private IEnumerable<(string, FrameworkElement)> Pages() => new (string, FrameworkElement)[]
+    {
+        ("analysis", AnalysisPage), ("games", GamesPage), ("clean", CleanPage), ("dupes", DupesPage), ("old", OldPage), ("news", NewsPage),
+        ("system", SystemPage), ("health", HealthPage), ("apps", AppsPage), ("caps", CapsPage), ("space", SpacePage),
+    };
 
     private void ApplyEmptyHints()
     {
@@ -169,7 +176,9 @@ public partial class MainWindow
         {
             var found = await Task.Run(GameDetector.Detect);
             _games = found.OrderBy(g => g.Name, StringComparer.CurrentCultureIgnoreCase).Select(g => new GameRow(g)).ToList();
+            MarkDuplicateGames(_games);
             GamesList.ItemsSource = _games;
+            _ = LoadGhosts(found);
             if (_games.Count == 0)
             {
                 GamesHint.Text = "Aucun jeu trouvé (Steam, Epic Games, Riot, Battle.net, Ubisoft, EA, GOG, Rockstar et Xbox sont reconnus).";
@@ -558,7 +567,7 @@ public partial class MainWindow
         {
             NewsList.ItemsSource = null;
             NewsHint.Text = $"Première analyse de {rootPath} enregistrée. À la prochaine analyse, tu verras ici les dossiers qui ont grossi ou diminué.";
-            _nav[5].Badge = "";
+            Nav("news").Badge = "";
             return;
         }
         var changes = SnapshotDiff.Compare(previous, current);
@@ -569,7 +578,7 @@ public partial class MainWindow
         NewsHint.Text = changes.Count == 0
             ? $"Depuis le {since} : {sign} {ByteSize.Format(Math.Abs(delta))} au total. Aucun dossier n'a changé de plus de 100 Mo."
             : $"Depuis le {since} : {sign} {ByteSize.Format(Math.Abs(delta))} au total · {changes.Count} dossier{(changes.Count > 1 ? "s ont" : " a")} changé de plus de 100 Mo. Double-clic pour l'afficher.";
-        _nav[5].Badge = changes.Count > 0 && _page != "news" ? changes.Count.ToString() : "";
+        Nav("news").Badge = changes.Count > 0 && _page != "news" ? changes.Count.ToString() : "";
     }
 }
 
@@ -662,32 +671,38 @@ public partial class MainWindow
 {
     private int _previewVersion;
 
-    private FsNode? PreviewNode(string prefix) => prefix == "Dupes"
-        ? (DupesList.SelectedItem as DupeRow)?.File
-        : (OldList.SelectedItem as OldFileRow)?.Node;
+    private string? PreviewPath(string prefix) => prefix switch
+    {
+        "Dupes" => (DupesList.SelectedItem as DupeRow)?.File?.FullPath,
+        "Old" => (OldList.SelectedItem as OldFileRow)?.Node.FullPath,
+        _ => (CapsList.SelectedItem as CaptureRow)?.File.FullName,
+    };
 
     private async void PreviewList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        string prefix = sender == DupesList ? "Dupes" : "Old";
-        var image = prefix == "Dupes" ? DupesPreviewImage : OldPreviewImage;
-        var empty = prefix == "Dupes" ? DupesPreviewEmpty : OldPreviewEmpty;
-        var name = prefix == "Dupes" ? DupesPreviewName : OldPreviewName;
-        var info = prefix == "Dupes" ? DupesPreviewInfo : OldPreviewInfo;
-        var node = PreviewNode(prefix);
+        string prefix = sender == DupesList ? "Dupes" : sender == OldList ? "Old" : "Caps";
+        var (image, empty, name, info) = prefix switch
+        {
+            "Dupes" => (DupesPreviewImage, DupesPreviewEmpty, DupesPreviewName, DupesPreviewInfo),
+            "Old" => (OldPreviewImage, OldPreviewEmpty, OldPreviewName, OldPreviewInfo),
+            _ => (CapsPreviewImage, CapsPreviewEmpty, CapsPreviewName, CapsPreviewInfo),
+        };
+        string? path = PreviewPath(prefix);
         int version = ++_previewVersion;
         image.Source = null;
-        if (node == null)
+        if (path == null)
         {
             empty.Text = "Sélectionne un fichier";
             empty.Visibility = Visibility.Visible;
             name.Text = info.Text = "";
             return;
         }
-        name.Text = node.Name;
-        info.Text = $"{ByteSize.Format(node.Size)} · modifié le {Fmt.Date(node.LastModifiedUtc)}\n{node.Parent?.FullPath}";
+        var fi = new FileInfo(path);
+        name.Text = fi.Name;
+        info.Text = fi.Exists ? $"{ByteSize.Format(fi.Length)} · modifié le {Fmt.Date(fi.LastWriteTimeUtc)}\n{fi.DirectoryName}" : "";
         empty.Text = "Chargement…";
         empty.Visibility = Visibility.Visible;
-        var thumb = await SystemTools.ThumbnailAsync(node.FullPath, 400);
+        var thumb = await SystemTools.ThumbnailAsync(path, 400);
         if (version != _previewVersion) return;
         image.Source = thumb;
         empty.Text = "Pas d'aperçu pour ce fichier";
@@ -696,11 +711,11 @@ public partial class MainWindow
 
     private void PreviewOpen_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string p } && PreviewNode(p) is { } n) Safe(() => NativeMethods.Open(n.FullPath));
+        if (sender is FrameworkElement { Tag: string p } && PreviewPath(p) is { } n) Safe(() => NativeMethods.Open(n));
     }
 
     private void PreviewReveal_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is FrameworkElement { Tag: string p } && PreviewNode(p) is { } n) Safe(() => NativeMethods.ShowInExplorer(n.FullPath));
+        if (sender is FrameworkElement { Tag: string p } && PreviewPath(p) is { } n) Safe(() => NativeMethods.ShowInExplorer(n));
     }
 }

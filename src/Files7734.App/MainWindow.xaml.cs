@@ -60,6 +60,7 @@ public partial class MainWindow : Window
         InitFeatures();
         InitPages();
         InitTray();
+        InitUpdates();
 
         // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.
         var args = Environment.GetCommandLineArgs();
@@ -418,6 +419,7 @@ public partial class MainWindow : Window
             Add("\uEA18", "Ce fichier est-il sûr ?…", () => new FileCheckWindow(this, path).ShowDialog());
             Add("\uE774", "Rechercher sur Internet", () => NativeMethods.Open(FileSafety.WebSearchUrl(node.Name)));
         }
+        if (!node.IsVirtual) Add("\uE72E", "Qui utilise ce " + (node.IsDirectory ? "dossier" : "fichier") + " ?", () => ShowLockers(path));
         menu.Items.Add(new Separator());
         Add("", "Copier", () => CopyToClipboard(node, cut: false));
         Add("", "Couper", () => CopyToClipboard(node, cut: true));
@@ -459,8 +461,8 @@ public partial class MainWindow : Window
         bool gone = !File.Exists(path) && !Directory.Exists(path);
         if (!gone)
         {
-            MessageBox.Show(this, "La suppression n'a pas pu être faite (fichier utilisé, droits insuffisants ou opération annulée).",
-                "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Warning);
+            if (MessageBox.Show(this, "La suppression n'a pas pu être faite (fichier utilisé, droits insuffisants ou opération annulée).\n\nVoir quel programme l'utilise ?",
+                "7734 Files Checker", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes) ShowLockers(path);
             return;
         }
 
