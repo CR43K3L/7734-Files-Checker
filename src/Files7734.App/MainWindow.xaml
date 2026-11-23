@@ -68,6 +68,9 @@
                 </Button>
             </StackPanel>
 
+            <!-- Défile quand l'écran est petit (portable, 1080p avec zoom Windows) -->
+            <ScrollViewer x:Name="SideScroll" PreviewMouseWheel="SideScroll_PreviewMouseWheel" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,-6,0" Padding="0,0,6,0">
+                <StackPanel>
             <TextBlock DockPanel.Dock="Top" Text="Outils" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
             <ListBox x:Name="NavList" DockPanel.Dock="Top" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource NavItem}"
                      Margin="0,0,0,16" SelectionChanged="NavList_SelectionChanged">
@@ -129,6 +132,8 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
+                </StackPanel>
+            </ScrollViewer>
         </DockPanel>
 
         <!-- ═════════ Zone principale ═════════ -->
@@ -991,6 +996,38 @@
                     </DockPanel>
                 </ContentControl>
 
+
+                <!-- ═════════ Page : Ranger le bureau ═════════ -->
+                <ContentControl x:Name="OrganizePage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button x:Name="OrganizeUndo" Style="{StaticResource PlainButton}" Click="OrganizeUndo_Click" Margin="8,0,0,0" Content="Annuler le dernier rangement"/>
+                                <Button x:Name="OrganizeApply" Style="{StaticResource AccentButton}" Click="OrganizeApply_Click" Margin="8,0,0,0" Content="Ranger" IsEnabled="False"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Ranger mon bureau"/>
+                                <TextBlock x:Name="OrganizeHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" TextWrapping="Wrap" Text="Recherche des programmes et des jeux…"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <WrapPanel x:Name="OrganizeFolders" DockPanel.Dock="Top" Margin="0,0,0,10"/>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+                            <CheckBox x:Name="OrganizeAuto" DockPanel.Dock="Right" VerticalAlignment="Center" Click="OrganizeAuto_Click" Content="Ranger tout seul les nouveaux raccourcis"/>
+                            <Border Style="{StaticResource SegmentHost}" HorizontalAlignment="Left"><StackPanel x:Name="OrganizeFilter" Orientation="Horizontal"/></Border>
+                        </DockPanel>
+                        <ListView x:Name="OrganizeList" SelectionMode="Single">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Sur le bureau" Width="100"><GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding OnDesktop, Mode=TwoWay}" Margin="22,0,0,0"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Programme" Width="320"><GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" Margin="0,2"><Image Source="{Binding Icon}" Width="20" Height="20" Margin="0,0,10,0" VerticalAlignment="Center"/><TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Type" Width="110"><GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding KindText}" Foreground="{DynamicResource MutedBrush}"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Dossier" Width="190"><GridViewColumn.CellTemplate><DataTemplate><Button Style="{StaticResource PlainButton}" Padding="10,3" Click="OrganizeFolder_Click" IsEnabled="{Binding OnDesktop}" HorizontalAlignment="Left"><StackPanel Orientation="Horizontal"><TextBlock Text="{Binding FolderText}"/><TextBlock Text="&#xE70D;" FontFamily="{StaticResource IconFont}" FontSize="9" Margin="8,2,0,0" VerticalAlignment="Center"/></StackPanel></Button></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Aujourd'hui" Width="200"><GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding NowText}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
 
                 <!-- ═════════ Page : FiveM, mes packs ═════════ -->
                 <ContentControl x:Name="FiveMPage" AllowDrop="True" Drop="FiveMPage_Drop" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">

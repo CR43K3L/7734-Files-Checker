@@ -559,22 +559,22 @@ public partial class MainWindow
 /// <summary>Petite fenêtre pour saisir un nouveau nom.</summary>
 internal static class RenameDialog
 {
-    public static string? Ask(Window owner, string current)
+    public static string? Ask(Window owner, string current, string title = "Renommer", string label = "Nouveau nom :", string action = "Renommer")
     {
         var box = new TextBox { Text = current, Margin = new Thickness(0, 10, 0, 16), Padding = new Thickness(6, 5, 6, 5), FontSize = 13 };
-        var ok = new Button { Content = "Renommer", IsDefault = true, Style = (Style)owner.FindResource("AccentButton"), Margin = new Thickness(8, 0, 0, 0) };
+        var ok = new Button { Content = action, IsDefault = true, Style = (Style)owner.FindResource("AccentButton"), Margin = new Thickness(8, 0, 0, 0) };
         var cancel = new Button { Content = "Annuler", IsCancel = true, Style = (Style)owner.FindResource("PlainButton") };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         buttons.Children.Add(cancel);
         buttons.Children.Add(ok);
         var panel = new StackPanel { Margin = new Thickness(20) };
-        panel.Children.Add(new TextBlock { Text = "Nouveau nom :", FontWeight = FontWeights.SemiBold });
+        panel.Children.Add(new TextBlock { Text = label, FontWeight = FontWeights.SemiBold });
         panel.Children.Add(box);
         panel.Children.Add(buttons);
 
         var win = new Window
         {
-            Title = "Renommer",
+            Title = title,
             Owner = owner,
             Content = panel,
             SizeToContent = SizeToContent.Height,

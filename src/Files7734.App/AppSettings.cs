@@ -29,6 +29,12 @@ public sealed class AppSettings
     public string? GtaPath { get; set; }
     /// <summary>Le joueur a confirmé avoir retiré son ancien pack installé à la main (tuto du premier pack).</summary>
     public bool FiveMOldPackCleared { get; set; }
+    /// <summary>Dossiers de rangement du bureau.</summary>
+    public List<string> DesktopFolders { get; set; } = new() { "APP", "JEUX" };
+    /// <summary>Où ranger chaque programme (clé = cible du raccourci ; "" = en vrac sur le bureau).</summary>
+    public Dictionary<string, string> DesktopRules { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Range tout seul les nouveaux raccourcis qui arrivent sur le bureau.</summary>
+    public bool AutoSortDesktop { get; set; }
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "7734FilesChecker", "settings.json");

@@ -23,6 +23,7 @@ public partial class MainWindow
         new("history", "\uE9D9", "Historique"),
         new("apps", "\uE71D", "Applications"),
         new("startup", "\uE7E8", "Démarrage"),
+        new("organize", "\uE8F1", "Ranger le bureau"),
         new("caps", "\uE722", "Captures et clips"),
         new("system", "\uE770", "Fichiers Windows"),
         new("health", "\uE95E", "Santé des disques"),
@@ -52,6 +53,13 @@ public partial class MainWindow
     private void NavList_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (NavList.SelectedItem is NavItem n) ShowPage(n.Key);
+    }
+
+    /// <summary>Les listes de la barre latérale captent la molette : on fait défiler la barre entière.</summary>
+    private void SideScroll_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        SideScroll.ScrollToVerticalOffset(SideScroll.VerticalOffset - e.Delta / 3.0);
+        e.Handled = true;
     }
 
     private void FiveMNav_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -84,6 +92,7 @@ public partial class MainWindow
             case "fivem": LoadFiveM(); break;
             case "fivemfix": LoadFiveMFix(); break;
             case "fivemgfx": LoadGfx(); break;
+            case "organize" when !_organizeLoaded: LoadOrganizer(); break;
         }
     }
 
@@ -93,7 +102,7 @@ public partial class MainWindow
     {
         ("analysis", AnalysisPage), ("games", GamesPage), ("clean", CleanPage), ("dupes", DupesPage), ("old", OldPage), ("news", NewsPage),
         ("system", SystemPage), ("health", HealthPage), ("apps", AppsPage), ("caps", CapsPage), ("space", SpacePage),
-        ("startup", StartupPage), ("history", HistoryPage), ("fivem", FiveMPage), ("fivemfix", FiveMFixPage), ("fivemgfx", FiveMGfxPage),
+        ("startup", StartupPage), ("history", HistoryPage), ("fivem", FiveMPage), ("fivemfix", FiveMFixPage), ("fivemgfx", FiveMGfxPage), ("organize", OrganizePage),
     };
 
     private void ApplyEmptyHints()

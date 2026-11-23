@@ -229,3 +229,35 @@ public sealed class StartupRow : CheckRow
     /// <summary>Applique le changement ; renvoie false si Windows a refusé.</summary>
     public bool Apply(bool enabled) => _set(Name, enabled);
 }
+
+/// <summary>Un programme ou un jeu dans la page « Ranger le bureau ».</summary>
+public sealed class OrganizeRow : INotifyPropertyChanged
+{
+    /// <param name="defaultFolder">Dossier proposé si le joueur ajoute ce programme au bureau.</param>
+    public OrganizeRow(ShortcutItem item, string? wanted, string defaultFolder)
+    {
+        Item = item;
+        _onDesktop = wanted != null;
+        _folder = wanted ?? defaultFolder;
+    }
+    public ShortcutItem Item { get; }
+    public string Name => Item.Name;
+    public string KindText => Item.IsGame ? "Jeu" : "Application";
+    public string NowText => Item.CurrentFolder == null ? "Pas sur le bureau" : Item.CurrentFolder.Length == 0 ? "Sur le bureau, en vrac" : $"Sur le bureau, dans {Item.CurrentFolder}";
+    private ImageSource? _icon;
+    public ImageSource? Icon { get => _icon; set { _icon = value; Changed(nameof(Icon)); } }
+
+    private bool _onDesktop;
+    public bool OnDesktop { get => _onDesktop; set { _onDesktop = value; Changed(nameof(OnDesktop)); Changed(nameof(FolderText)); Edited?.Invoke(); } }
+    private string _folder;
+    public string Folder { get => _folder; set { _folder = value; Changed(nameof(FolderText)); Edited?.Invoke(); } }
+    public string FolderText => !_onDesktop ? "—" : _folder.Length == 0 ? "En vrac sur le bureau" : _folder;
+
+    /// <summary>État voulu : dossier ("" = en vrac) ou null (pas sur le bureau).</summary>
+    public string? Wanted => _onDesktop ? _folder : null;
+    public bool IsChanged => Wanted != Item.CurrentFolder;
+
+    public Action? Edited { get; set; }
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void Changed(string n) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
+}

@@ -31,9 +31,23 @@ public partial class MainWindow : Window
         public override string ToString() => $"{Letter} {Label}";
     }
 
+    /// <summary>
+    /// Taille de départ adaptée à l'écran : sur un portable ou un écran 1080p avec zoom Windows à 125-150 %,
+    /// 1380 × 840 ne rentre pas. On garde au plus 92 % de la zone utile (hors barre des tâches).
+    /// </summary>
+    private void FitToScreen()
+    {
+        var area = SystemParameters.WorkArea;
+        Width = Math.Min(Width, Math.Floor(area.Width * 0.92));
+        Height = Math.Min(Height, Math.Floor(area.Height * 0.92));
+        MinWidth = Math.Min(MinWidth, area.Width);
+        MinHeight = Math.Min(MinHeight, area.Height);
+    }
+
     public MainWindow()
     {
         InitializeComponent();
+        FitToScreen();
         TreeList.ItemsSource = _rows;
         _elevated = NativeMethods.IsElevated();
         AdminBanner.Visibility = _elevated ? Visibility.Collapsed : Visibility.Visible;
@@ -61,6 +75,7 @@ public partial class MainWindow : Window
         InitPages();
         InitTray();
         InitHistory();
+        InitOrganizer();
         InitUpdates();
 
         // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.
