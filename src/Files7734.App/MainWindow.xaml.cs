@@ -79,12 +79,36 @@ public partial class MainWindow : Window
         InitUpdates();
 
         // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.
-        var args = Environment.GetCommandLineArgs();
-        if (args.Length > 1)
+        if (PathArg(Environment.GetCommandLineArgs().Skip(1)) is string arg) Loaded += (_, _) => StartScan(arg);
+
+        // Un nouveau lancement alors que l'app est déjà ouverte : on revient au premier plan à la place.
+        SingleInstance.Listen(args => Dispatcher.BeginInvoke(new Action(() => OnSecondLaunch(args))));
+    }
+
+    private static string? PathArg(IEnumerable<string> args)
+    {
+        foreach (var a in args)
         {
-            string arg = args[1].Trim().Trim('"');
+            string arg = a.Trim().Trim('"');
+            if (arg.StartsWith("--")) continue;
             if (arg.Length == 2 && arg[1] == ':') arg += "\\";
-            if (Directory.Exists(arg)) Loaded += (_, _) => StartScan(arg);
+            if (Directory.Exists(arg)) return arg;
+        }
+        return null;
+    }
+
+    private void OnSecondLaunch(string[] args)
+    {
+        if (args.Any(a => a.Equals("--tray", StringComparison.OrdinalIgnoreCase))) return; // démarrage de Windows : rien à montrer
+        Show();
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+        Topmost = true;
+        Topmost = false;
+        if (PathArg(args) is string path && !_progressTimer.IsEnabled)
+        {
+            ShowPage("analysis");
+            StartScan(path);
         }
     }
 

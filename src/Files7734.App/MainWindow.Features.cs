@@ -96,7 +96,6 @@ public partial class MainWindow
         Item(export, "Exporter l'analyse en CSV…", "Ctrl+Alt+E", ExportCsv);
         Item(export, "Exporter les types de fichiers en CSV…", "Ctrl+Alt+F", ExportTypes);
         Item(export, "Enregistrer la carte en PNG…", "Ctrl+S", SaveMapPng);
-        Item(export, "Ouvrir une nouvelle fenêtre", "Ctrl+N", () => Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true }));
 
         const string about = "À propos";
         Item(about, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));

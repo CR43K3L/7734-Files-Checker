@@ -7,6 +7,16 @@ public partial class App : Application
 {
     protected override void OnStartup(StartupEventArgs e)
     {
+        bool restart = e.Args.Any(a => a.Equals("--restart", StringComparison.OrdinalIgnoreCase));
+        if (!SingleInstance.Acquire(waitForPrevious: restart))
+        {
+            // Déjà ouverte : on lui passe la main (et le dossier à analyser, s'il y en a un).
+            if (!SingleInstance.SendToRunning(e.Args))
+                MessageBox.Show("7734 Files Checker est déjà ouvert (regarde aussi près de l'horloge).", "7734 Files Checker",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
         DispatcherUnhandledException += OnUnhandled;
         Theme.Apply(AppSettings.Load().Theme);
         base.OnStartup(e);

@@ -17,7 +17,7 @@ internal static class NativeMethods
     {
         try
         {
-            Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true, Verb = "runas" });
+            Process.Start(new ProcessStartInfo(Environment.ProcessPath!, "--restart") { UseShellExecute = true, Verb = "runas" });
             return true;
         }
         catch (System.ComponentModel.Win32Exception)
