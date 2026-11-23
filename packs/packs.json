@@ -8,6 +8,24 @@
       "description": "Le pack graphique de R0M4N : ENB, mods et plugins pour un rendu photo réaliste.",
       "url": "https://drive.google.com/file/d/1TRNsjALC6ZrkgyKQBNGi0xWQYmDbYQCE/view?usp=sharing",
       "size": 1894967326
+    },
+    {
+      "id": "pack-miami",
+      "name": "Pack Miami",
+      "version": "1.0",
+      "kind": "Graphique",
+      "description": "Couleurs vives, l'ambiance de Miami.",
+      "url": "https://drive.google.com/file/d/1LkCKHhjwnOPMTcPeuk3KIntWV2UK3kUr/view?usp=sharing",
+      "size": 8770063379
+    },
+    {
+      "id": "pack-new-york",
+      "name": "Pack New York",
+      "version": "1.0",
+      "kind": "Graphique",
+      "description": "Couleurs fades et grisées, l'ambiance de New York.",
+      "url": "https://drive.google.com/file/d/1vx0brLnxi27MuKVoH4yaFZ4CTu5rPf_k/view?usp=sharing",
+      "size": 2784771517
     }
   ]
 }
