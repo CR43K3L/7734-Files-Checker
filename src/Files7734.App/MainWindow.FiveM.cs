@@ -184,11 +184,23 @@ public partial class MainWindow
         try
         {
             status.Text = "Téléchargement du pack…";
+            var clock = Stopwatch.StartNew();
+            var samples = new Queue<(double T, long Bytes)>();
             await DownloadPack(pack, zip, (done, total) =>
             {
                 bar.IsIndeterminate = total <= 0;
                 if (total > 0) bar.Value = (double)done / total;
-                status.Text = total > 0 ? $"Téléchargement… {ByteSize.Format(done)} sur {ByteSize.Format(total)}" : $"Téléchargement… {ByteSize.Format(done)}";
+                // Vitesse moyenne sur les 3 dernières secondes, et temps restant.
+                double now = clock.Elapsed.TotalSeconds;
+                samples.Enqueue((now, done));
+                while (samples.Count > 2 && now - samples.Peek().T > 3) samples.Dequeue();
+                var first = samples.Peek();
+                double speed = now - first.T > 0.3 ? (done - first.Bytes) / (now - first.T) : 0;
+                string rate = speed > 0 ? $" · {ByteSize.Format((long)speed)}/s" : "";
+                string left = speed > 0 && total > done ? " · " + Remaining((total - done) / speed) : "";
+                status.Text = total > 0
+                    ? $"Téléchargement… {ByteSize.Format(done)} sur {ByteSize.Format(total)}{rate}{left}"
+                    : $"Téléchargement… {ByteSize.Format(done)}{rate}";
             });
 
             if (record != null)
@@ -227,6 +239,13 @@ public partial class MainWindow
             if (_page == "fivem") LoadFiveM();
         }
     }
+
+    private static string Remaining(double seconds) => seconds switch
+    {
+        < 60 => $"encore {Math.Max(1, (int)seconds)} s",
+        < 3600 => $"encore {(int)(seconds / 60)} min {(int)(seconds % 60):00} s",
+        _ => $"encore {(int)(seconds / 3600)} h {(int)(seconds % 3600 / 60):00}",
+    };
 
     private async Task UninstallPack()
     {
