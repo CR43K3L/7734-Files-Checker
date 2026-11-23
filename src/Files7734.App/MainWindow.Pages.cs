@@ -31,6 +31,7 @@ public partial class MainWindow
     private readonly List<NavItem> _fivemNav = new()
     {
         new("fivem", "\uE7FC", "Mes packs"),
+        new("fivemgfx", "\uE7F4", "Réglages graphiques"),
         new("fivemfix", "\uE90F", "Réparer FiveM"),
     };
 
@@ -82,6 +83,7 @@ public partial class MainWindow
             case "history": ShowHistory(); break;
             case "fivem": LoadFiveM(); break;
             case "fivemfix": LoadFiveMFix(); break;
+            case "fivemgfx": LoadGfx(); break;
         }
     }
 
@@ -91,7 +93,7 @@ public partial class MainWindow
     {
         ("analysis", AnalysisPage), ("games", GamesPage), ("clean", CleanPage), ("dupes", DupesPage), ("old", OldPage), ("news", NewsPage),
         ("system", SystemPage), ("health", HealthPage), ("apps", AppsPage), ("caps", CapsPage), ("space", SpacePage),
-        ("startup", StartupPage), ("history", HistoryPage), ("fivem", FiveMPage), ("fivemfix", FiveMFixPage),
+        ("startup", StartupPage), ("history", HistoryPage), ("fivem", FiveMPage), ("fivemfix", FiveMFixPage), ("fivemgfx", FiveMGfxPage),
     };
 
     private void ApplyEmptyHints()

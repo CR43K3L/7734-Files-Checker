@@ -1003,6 +1003,22 @@
                     </DockPanel>
                 </ContentControl>
 
+                <!-- ═════════ Page : Réglages graphiques FiveM ═════════ -->
+                <ContentControl x:Name="FiveMGfxPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button x:Name="GfxRestore" Style="{StaticResource PlainButton}" Click="GfxRestore_Click" Margin="8,0,0,0" Content="Remettre mes anciens réglages"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Réglages graphiques"/>
+                                <TextBlock x:Name="GfxHint" Style="{StaticResource PageHint}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="GfxCards" Margin="0,0,6,0"/></ScrollViewer>
+                    </DockPanel>
+                </ContentControl>
+
                 <!-- ═════════ Page : Réparer FiveM ═════════ -->
                 <ContentControl x:Name="FiveMFixPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
                     <DockPanel>

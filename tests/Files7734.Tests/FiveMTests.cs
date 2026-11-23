@@ -125,3 +125,41 @@ public class FiveMTests
         Assert.False(FiveMPacks.IsNewer("1.0", "1.0"));
     }
 }
+
+public class GtaSettingsTests
+{
+    private const string Xml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Settings>\n  <version value=\"27\" />\n  <graphics>\n    <TextureQuality value=\"2\" />\n    <LodScale value=\"0.800000\" />\n    <MSAA value=\"0\" />\n  </graphics>\n  <video>\n    <VSync value=\"1\" />\n  </video>\n</Settings>";
+
+    [Fact]
+    public void ReadsAndWritesValues()
+    {
+        var s = GtaSettings.Parse(Xml);
+        Assert.Equal("2", s.Get("TextureQuality"));
+        s.Set("TextureQuality", "0");
+        s.Set("GrassQuality", "1");
+        var again = GtaSettings.Parse(s.ToString());
+        Assert.Equal("0", again.Get("TextureQuality"));
+        Assert.Equal("1", again.Get("GrassQuality"));
+        Assert.Contains("VSync", s.ToString());
+    }
+
+    [Fact]
+    public void PresetsCoverKnownOptionsAndMatch()
+    {
+        foreach (var p in GtaSettings.Presets)
+        {
+            foreach (var (k, v) in p.Values)
+            {
+                var o = GtaSettings.Options.Single(x => x.Key == k);
+                Assert.Contains(o.Choices, c => c.Value == v);
+            }
+            var s = GtaSettings.Parse(Xml);
+            s.ApplyPreset(p.Values);
+            Assert.Equal(p.Name, s.CurrentPreset());
+        }
+    }
+
+    [Fact]
+    public void MatchesClosestNumber() =>
+        Assert.Equal("1.000000", GtaSettings.MatchChoice(GtaSettings.Options.Single(o => o.Key == "LodScale"), "0.800000"));
+}
