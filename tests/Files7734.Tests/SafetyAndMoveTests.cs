@@ -57,6 +57,13 @@ public class FolderMoverTests
         {
             var (result, _, dest) = FolderMover.Move(src, dstParent, (link, target) =>
             {
+                if (OperatingSystem.IsWindows())
+                {
+                    // Jonction : pas besoin des droits administrateur (contrairement aux liens symboliques).
+                    using var p = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", $"/c mklink /J \"{link}\" \"{target}\"") { CreateNoWindow = true, UseShellExecute = false })!;
+                    p.WaitForExit();
+                    return p.ExitCode == 0;
+                }
                 Directory.CreateSymbolicLink(link, target);
                 return true;
             });
