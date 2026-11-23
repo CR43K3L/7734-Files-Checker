@@ -17,8 +17,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -41,7 +39,7 @@ jobs:
         run: |
           notes="docs/notes/${TAG}.md"
           if [ -f "$notes" ]; then
-            gh release create "$TAG" publish/7734FilesChecker.exe --title "7734 Files Checker ${TAG#v}" --notes-file "$notes"
+            gh release create "$TAG" publish/7734FilesChecker.exe --target "$GITHUB_SHA" --title "7734 Files Checker ${TAG#v}" --notes-file "$notes"
           else
-            gh release create "$TAG" publish/7734FilesChecker.exe --title "7734 Files Checker ${TAG#v}" --generate-notes
+            gh release create "$TAG" publish/7734FilesChecker.exe --target "$GITHUB_SHA" --title "7734 Files Checker ${TAG#v}" --generate-notes
           fi
