@@ -987,7 +987,7 @@
 
 
                 <!-- ═════════ Page : FiveM, mes packs ═════════ -->
-                <ContentControl x:Name="FiveMPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                <ContentControl x:Name="FiveMPage" AllowDrop="True" Drop="FiveMPage_Drop" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
                     <DockPanel>
                         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
                             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">

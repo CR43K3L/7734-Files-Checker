@@ -35,7 +35,7 @@ public sealed class PackCatalog
 }
 
 /// <summary>Où vont les fichiers d'un pack.</summary>
-public enum PackTarget { Mods, Plugins, Citizen, Game }
+public enum PackTarget { Mods, Plugins, Citizen, Game, App }
 
 public sealed record PackTargets(string FiveMApp, string? Game)
 {
@@ -44,6 +44,7 @@ public sealed record PackTargets(string FiveMApp, string? Game)
         PackTarget.Mods => Path.Combine(FiveMApp, "mods"),
         PackTarget.Plugins => Path.Combine(FiveMApp, "plugins"),
         PackTarget.Citizen => Path.Combine(FiveMApp, "citizen"),
+        PackTarget.App => FiveMApp,
         _ => Game,
     };
 }
@@ -61,6 +62,8 @@ public sealed class PackRecord
     public List<string> CreatedDirs { get; set; } = new();
     /// <summary>Fichiers d'origine remplacés par le pack, mis de côté puis remis en place à la désinstallation.</summary>
     public List<Backup> Backups { get; set; } = new();
+    /// <summary>Date de la version de QuantV installée par l'app (ex. « 2026-11-22 »), si elle en a installé une.</summary>
+    public string? QuantV { get; set; }
     public sealed record Backup(string Original, string Saved);
 
     public void Save(string file)
@@ -335,6 +338,97 @@ public static class FiveMPacks
             File.Copy(f, t, overwrite: true);
         }
         Directory.Delete(src, recursive: true);
+    }
+
+    // ───────────── Mises à jour QuantV ─────────────
+
+    public sealed record QuantVPlan(List<Placement> Files, List<string> GpuOptions, string? Date);
+
+    /// <summary>
+    /// Contenu d'un zip QuantV FiveM : « Part1\FiveM_App_data\… » toujours, puis une seule option de « Part2 »
+    /// (« NUI in-process GPU on (default) » ou « … off … »). QV_Optionals et le README sont ignorés.
+    /// </summary>
+    public static QuantVPlan QuantVLayout(IEnumerable<string> entries, string zipName, bool? gpuInProcess)
+    {
+        var files = entries.Select(e => e.Replace('\\', '/')).Where(e => !e.EndsWith('/')).ToList();
+        var result = new List<Placement>();
+        var options = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        const string data = "FiveM_App_data/";
+        foreach (var f in files)
+        {
+            var parts = f.Split('/');
+            int part = Array.FindIndex(parts, x => Regex.IsMatch(x, @"^Part\d+$", RegexOptions.IgnoreCase));
+            int dataAt = f.IndexOf(data, StringComparison.OrdinalIgnoreCase);
+            if (part < 0 || dataAt < 0) continue;
+            string rel = f[(dataAt + data.Length)..];
+            if (rel.Length == 0 || rel.Split('/').Any(x => x is ".." or ".")) continue;
+            // Une option de Part2 : le dossier entre « PartN » et « FiveM_App_data ».
+            string between = string.Join("/", parts.Skip(part + 1).TakeWhile(x => !x.Equals("FiveM_App_data", StringComparison.OrdinalIgnoreCase)));
+            if (between.Length > 0)
+            {
+                options.Add(between);
+                bool off = Regex.IsMatch(between, @"\bgpu\s*off\b", RegexOptions.IgnoreCase);
+                bool want = gpuInProcess ?? true;
+                if (off == want) continue;
+            }
+            result.Add(new Placement(f, PackTarget.App, rel.Replace('/', Path.DirectorySeparatorChar)));
+        }
+        var date = Regex.Match(zipName, @"\d{4}-\d{2}-\d{2}");
+        return new QuantVPlan(result, options.ToList(), date.Success ? date.Value : null);
+    }
+
+    /// <summary>
+    /// Ajoute ou remplace des fichiers et les inscrit dans <paramref name="record"/> (pour qu'ils partent avec le pack).
+    /// Un fichier qui n'appartenait pas au pack est mis de côté ; en cas d'erreur, tout revient comme avant.
+    /// </summary>
+    public static void Merge(string zipPath, IReadOnlyList<Placement> plan, PackTargets targets, PackRecord record, string backupDir,
+        IProgress<PackProgress>? progress = null)
+    {
+        using var zip = ZipFile.OpenRead(zipPath);
+        var byName = zip.Entries.GroupBy(e => e.FullName.Replace('\\', '/'), StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var owned = new HashSet<string>(record.Files, StringComparer.OrdinalIgnoreCase);
+        string tx = Path.Combine(backupDir, "en-cours-" + Guid.NewGuid().ToString("N")[..8]);
+        var swapped = new List<(string Dest, string Temp)>();
+        var added = new List<string>();
+        var newBackups = new List<PackRecord.Backup>();
+        var newDirs = new PackRecord();
+        long total = Math.Max(1, plan.Sum(p => byName.TryGetValue(p.Entry, out var e) ? e.Length : 0)), done = 0;
+        try
+        {
+            foreach (var p in plan)
+            {
+                if (!byName.TryGetValue(p.Entry, out var entry)) continue;
+                string root = Path.GetFullPath(targets.Root(p.Target)!);
+                string dest = Path.GetFullPath(Path.Combine(root, p.Relative));
+                if (!dest.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                CreateDirs(Path.GetDirectoryName(dest)!, newDirs);
+                if (File.Exists(dest))
+                {
+                    string temp = Path.Combine(owned.Contains(dest) ? tx : Path.Combine(backupDir, "QuantV"), p.Target.ToString(), p.Relative);
+                    Directory.CreateDirectory(Path.GetDirectoryName(temp)!);
+                    if (File.Exists(temp)) File.Delete(temp);
+                    File.Move(dest, temp);
+                    if (owned.Contains(dest)) swapped.Add((dest, temp));
+                    else newBackups.Add(new PackRecord.Backup(dest, temp));
+                }
+                if (!owned.Contains(dest)) added.Add(dest);
+                entry.ExtractToFile(dest, overwrite: true);
+                done += entry.Length;
+                progress?.Report(new PackProgress(Path.GetFileName(dest), (double)done / total));
+            }
+        }
+        catch
+        {
+            // Retour en arrière : nouveaux fichiers retirés, anciens remis.
+            Uninstall(new PackRecord { Files = added, Backups = newBackups, CreatedDirs = newDirs.CreatedDirs });
+            foreach (var (dest, temp) in swapped) { try { File.Move(temp, dest, overwrite: true); } catch (Exception) { } }
+            try { if (Directory.Exists(tx)) Directory.Delete(tx, true); } catch (Exception) { }
+            throw;
+        }
+        try { if (Directory.Exists(tx)) Directory.Delete(tx, true); } catch (Exception) { }
+        record.Files.AddRange(added);
+        record.Backups.AddRange(newBackups);
+        record.CreatedDirs.AddRange(newDirs.CreatedDirs);
     }
 
     public static bool IsNewer(string available, string installed)

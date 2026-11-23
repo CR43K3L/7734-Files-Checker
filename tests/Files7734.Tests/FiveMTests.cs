@@ -163,3 +163,70 @@ public class GtaSettingsTests
     public void MatchesClosestNumber() =>
         Assert.Equal("1.000000", GtaSettings.MatchChoice(GtaSettings.Options.Single(o => o.Key == "LodScale"), "0.800000"));
 }
+
+public class QuantVTests
+{
+    private static readonly string[] Entries =
+    {
+        "Part1/", "Part1/FiveM_App_data/mods/QuantV.rpf", "Part1/FiveM_App_data/plugins/reshade-shaders/Shaders/qv.fx", "Part1/FiveM_App_data/plugins/dxgi.dll",
+        "Part2/choose one option - if unsure choose NUI in-process GPU on",
+        "Part2/NUI in-process GPU off (old GPUs like gtx1000 series)/FiveM_App_data/plugins/nui.ini",
+        "Part2/NUI in-process GPU on (default)/FiveM_App_data/plugins/nui.ini",
+        "QV_Optionals/Extra/FiveM_App_data/mods/x.rpf", "license.md", "README.html",
+    };
+
+    [Fact]
+    public void PicksPart1AndDefaultGpuOption()
+    {
+        var plan = FiveMPacks.QuantVLayout(Entries, "QuantV FiveM 2026-11-22.zip", null);
+        Assert.Equal(4, plan.Files.Count);
+        Assert.Contains(plan.Files, p => p.Entry.Contains("GPU on"));
+        Assert.DoesNotContain(plan.Files, p => p.Entry.Contains("GPU off") || p.Entry.Contains("QV_Optionals"));
+        Assert.Equal(2, plan.GpuOptions.Count);
+        Assert.Equal("2026-11-22", plan.Date);
+        Assert.Contains(plan.Files, p => p.Target == PackTarget.App && p.Relative == Path.Combine("mods", "QuantV.rpf"));
+    }
+
+    [Fact]
+    public void OldGpuPicksOffOption()
+    {
+        var plan = FiveMPacks.QuantVLayout(Entries.Select(e => "QuantV FiveM 2026-11-22/" + e), "q.zip", false);
+        Assert.Contains(plan.Files, p => p.Entry.Contains("GPU off"));
+        Assert.DoesNotContain(plan.Files, p => p.Entry.Contains("GPU on"));
+    }
+
+    [Fact]
+    public void MergeUpdatesPackFilesAndKeepsOthersBacked()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "7734-qv-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            string app = Path.Combine(dir, "FiveM.app"), backup = Path.Combine(dir, "bk");
+            Directory.CreateDirectory(Path.Combine(app, "mods"));
+            Directory.CreateDirectory(Path.Combine(app, "plugins"));
+            string packFile = Path.Combine(app, "mods", "QuantV.rpf"), userFile = Path.Combine(app, "plugins", "dxgi.dll");
+            File.WriteAllText(packFile, "old");
+            File.WriteAllText(userFile, "user");
+            var record = new PackRecord { Id = "p", Name = "P", Files = { packFile } };
+
+            string zipPath = Path.Combine(dir, "QuantV FiveM 2026-11-22.zip");
+            using (var z = ZipFile.Open(zipPath, ZipArchiveMode.Create))
+                foreach (var e in Entries.Where(e => !e.EndsWith('/')))
+                { using var w = new StreamWriter(z.CreateEntry(e).Open()); w.Write("new:" + e); }
+
+            var plan = FiveMPacks.QuantVLayout(Entries, zipPath, null);
+            FiveMPacks.Merge(zipPath, plan.Files, new PackTargets(app, null), record, backup);
+
+            Assert.StartsWith("new:", File.ReadAllText(packFile));
+            Assert.StartsWith("new:", File.ReadAllText(userFile));
+            Assert.Equal(4, record.Files.Count);
+            Assert.Single(record.Backups);
+
+            Assert.Empty(FiveMPacks.Uninstall(record));
+            Assert.Equal("user", File.ReadAllText(userFile));
+            Assert.False(File.Exists(packFile));
+            Assert.False(Directory.Exists(Path.Combine(app, "plugins", "reshade-shaders")));
+        }
+        finally { try { Directory.Delete(dir, true); } catch (Exception) { } }
+    }
+}

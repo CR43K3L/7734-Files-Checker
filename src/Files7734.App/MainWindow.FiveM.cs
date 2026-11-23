@@ -88,6 +88,12 @@ public partial class MainWindow
                 Pill("Installé", 0xFF0A84FFu),
                 ("Retirer ce pack", () => _ = UninstallPack(), !_packBusy, false)));
 
+        FiveMCards.Children.Add(InfoCard("QuantV", "",
+            (record?.QuantV is string qv ? $"Version du {qv} installée par l'app. " : "") +
+            "Quand QuantV affiche « mise à jour disponible » en jeu : télécharge la mise à jour FiveM sur ton compte QuantV, puis glisse le .zip sur cette page (ou clique sur Importer). L'app remplace les anciens fichiers toute seule.",
+            Pill("Mise à jour", 0xFFAF52DEu),
+            ("Importer une mise à jour…", PickQuantVZip, FiveMInstalled && !_packBusy, false)));
+
         if (_catalog == null)
         {
             FiveMHint.Text = "Chargement des packs…";
@@ -293,6 +299,128 @@ public partial class MainWindow
         bool allow = false;
         win.Closing += (_, e) => { if (!allow) e.Cancel = true; };
         return (win, status, bar, () => { allow = true; win.Close(); });
+    }
+
+    // ───────────── QuantV ─────────────
+
+    private void FiveMPage_Drop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] { Length: > 0 } files && files[0].EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            _ = ImportQuantV(files[0]);
+    }
+
+    private void PickQuantVZip()
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Mise à jour QuantV (*.zip)|*.zip", Title = "Choisis le .zip de la mise à jour QuantV FiveM" };
+        string downloads = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+        if (Directory.Exists(downloads)) dlg.InitialDirectory = downloads;
+        if (dlg.ShowDialog(this) == true) _ = ImportQuantV(dlg.FileName);
+    }
+
+    private static string? GpuName()
+    {
+        try
+        {
+            using var searcher = new System.Management.ManagementObjectSearcher("SELECT Name FROM Win32_VideoController");
+            return searcher.Get().Cast<System.Management.ManagementObject>().Select(o => o["Name"] as string)
+                .Where(n => n != null).OrderByDescending(n => n!.Contains("NVIDIA") || n.Contains("AMD") || n.Contains("Radeon")).FirstOrDefault();
+        }
+        catch (Exception) { return null; }
+    }
+
+    /// <summary>Vieilles cartes (GTX 10xx et avant, Radeon RX 500 et avant) : QuantV conseille « NUI in-process GPU off ».</summary>
+    private static bool IsOldGpu(string? name) => name != null && System.Text.RegularExpressions.Regex.IsMatch(name,
+        @"GTX\s*(10[0-9]{2}|9[0-9]{2}|7[0-9]{2}|6[0-9]{2})|RX\s*[45][0-9]{2}\b|R9\s|R7\s|HD\s*\d{4}", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+    /// <summary>Demande l'option « NUI in-process GPU ». Renvoie null si annulé.</summary>
+    private bool? AskGpuOption()
+    {
+        string? gpu = GpuName();
+        bool old = IsOldGpu(gpu);
+        var win = NewDialog("Option QuantV", 520);
+        var root = new StackPanel { Margin = new Thickness(24, 22, 24, 18) };
+        root.Children.Add(Header("\uE7F4", "Quelle option pour ta carte graphique ?",
+            (gpu != null ? $"Ta carte : {gpu}. " : "") + (old
+                ? "C'est une carte plus ancienne : QuantV conseille « GPU off »."
+                : "« GPU on » est l'option conseillée par QuantV pour les cartes récentes.")));
+        bool? result = null;
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 18, 0, 0) };
+        var cancel = new Button { Content = "Annuler", IsCancel = true, Style = (Style)FindResource("PlainButton") };
+        var off = new Button { Content = "GPU off (anciennes cartes)" + (old ? " · conseillé" : ""), Style = (Style)FindResource(old ? "AccentButton" : "PlainButton"), Margin = new Thickness(8, 0, 0, 0), IsDefault = old };
+        var on = new Button { Content = "GPU on" + (old ? "" : " · conseillé"), Style = (Style)FindResource(old ? "PlainButton" : "AccentButton"), Margin = new Thickness(8, 0, 0, 0), IsDefault = !old };
+        cancel.Click += (_, _) => win.Close();
+        off.Click += (_, _) => { result = false; win.Close(); };
+        on.Click += (_, _) => { result = true; win.Close(); };
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(off);
+        buttons.Children.Add(on);
+        root.Children.Add(buttons);
+        win.Content = root;
+        win.ShowDialog();
+        return result;
+    }
+
+    private async Task ImportQuantV(string zipPath)
+    {
+        if (_packBusy) return;
+        if (!FiveMInstalled) { MessageBox.Show(this, "FiveM n'est pas installé sur ce PC.", "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Information); return; }
+        List<string> entries;
+        try
+        {
+            using var zip = System.IO.Compression.ZipFile.OpenRead(zipPath);
+            entries = zip.Entries.Select(e => e.FullName).ToList();
+        }
+        catch (Exception)
+        {
+            MessageBox.Show(this, "Ce fichier n'est pas un .zip valide (téléchargement incomplet ?).", "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        var probe = FiveMPacks.QuantVLayout(entries, Path.GetFileName(zipPath), null);
+        if (probe.Files.Count == 0)
+        {
+            MessageBox.Show(this, "Ce zip ne ressemble pas à une mise à jour QuantV pour FiveM (il doit contenir Part1\\FiveM_App_data). Vérifie que tu as pris la version FiveM.",
+                "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        bool? gpuOn = null;
+        if (probe.GpuOptions.Count > 1)
+        {
+            gpuOn = AskGpuOption();
+            if (gpuOn == null) return;
+        }
+        var plan = FiveMPacks.QuantVLayout(entries, Path.GetFileName(zipPath), gpuOn);
+        if (!EnsureFiveMClosed()) return;
+
+        _packBusy = true;
+        var (win, status, bar, closeWin) = ProgressDialog("Mise à jour de QuantV");
+        win.Show();
+        try
+        {
+            var record = PackRecord.Load(RecordFile) ?? new PackRecord { Id = "quantv", Name = "QuantV", Version = plan.Date ?? "", InstalledUtc = DateTime.UtcNow };
+            bar.IsIndeterminate = false;
+            var progress = new Progress<PackProgress>(p => { bar.Value = p.Fraction; status.Text = "Copie… " + p.Step; });
+            var targets = Targets();
+            await Task.Run(() => FiveMPacks.Merge(zipPath, plan.Files, targets, record, Path.Combine(FiveMData, "sauvegarde-packs", record.Id), progress));
+            record.QuantV = plan.Date ?? DateTime.Now.ToString("yyyy-MM-dd");
+            record.Save(RecordFile);
+            status.Text = "Vidage du cache de FiveM…";
+            bar.IsIndeterminate = true;
+            await Task.Run(ClearFiveMCache);
+            closeWin();
+            MessageBox.Show(this, $"QuantV est à jour{(plan.Date != null ? $" (version du {plan.Date})" : "")} ! Le message de mise à jour ne s'affichera plus en jeu.",
+                "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Information);
+            StatusText.Text = $"QuantV mis à jour ({plan.Files.Count} fichiers).";
+        }
+        catch (Exception ex)
+        {
+            closeWin();
+            MessageBox.Show(this, "La mise à jour n'a pas abouti : " + ex.Message + "\n\nTout a été remis comme avant.", "7734 Files Checker", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            _packBusy = false;
+            if (_page == "fivem") LoadFiveM();
+        }
     }
 
     // ───────────── Tuto ─────────────

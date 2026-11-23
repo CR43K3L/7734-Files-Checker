@@ -1,3 +1,13 @@
 {
-  "packs": []
+  "packs": [
+    {
+      "id": "pack-photo",
+      "name": "Pack Photo",
+      "version": "1.0",
+      "kind": "Graphique",
+      "description": "Le pack graphique de R0M4N : ENB, mods et plugins pour un rendu photo réaliste.",
+      "url": "https://drive.google.com/file/d/1TRNsjALC6ZrkgyKQBNGi0xWQYmDbYQCE/view?usp=sharing",
+      "size": 1894967326
+    }
+  ]
 }
