@@ -85,6 +85,23 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
+            <TextBlock DockPanel.Dock="Top" Text="FiveM" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
+            <ListBox x:Name="FiveMNav" DockPanel.Dock="Top" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource NavItem}"
+                     Margin="0,0,0,16" SelectionChanged="FiveMNav_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <DockPanel>
+                            <Border DockPanel.Dock="Right" Style="{StaticResource Badge}" Visibility="{Binding BadgeVisibility}">
+                                <TextBlock Text="{Binding Badge}" FontSize="10.5" FontWeight="SemiBold" Foreground="White" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="15" Foreground="{DynamicResource AccentBrush}"
+                                       VerticalAlignment="Center" Margin="0,0,11,0"/>
+                            <TextBlock Text="{Binding Label}" VerticalAlignment="Center"/>
+                        </DockPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
             <TextBlock DockPanel.Dock="Top" Text="Disques" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource FaintBrush}" Margin="10,0,0,6"/>
             <ListBox x:Name="DriveList" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource SidebarItem}"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -965,6 +982,37 @@
                         <Border CornerRadius="12" Background="{DynamicResource ContentBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Padding="10">
                             <Canvas x:Name="HistoryChart" ClipToBounds="True" SizeChanged="HistoryChart_SizeChanged"/>
                         </Border>
+                    </DockPanel>
+                </ContentControl>
+
+
+                <!-- ═════════ Page : FiveM, mes packs ═════════ -->
+                <ContentControl x:Name="FiveMPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button Style="{StaticResource PlainButton}" Click="FiveMTuto_Click" Margin="8,0,0,0" Content="Comment ça marche ?"/>
+                                <Button Style="{StaticResource PlainButton}" Click="FiveMRefresh_Click" Margin="8,0,0,0" Content="Actualiser"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Packs graphiques et sons"/>
+                                <TextBlock x:Name="FiveMHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Chargement des packs…"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="FiveMCards" Margin="0,0,6,0"/></ScrollViewer>
+                    </DockPanel>
+                </ContentControl>
+
+                <!-- ═════════ Page : Réparer FiveM ═════════ -->
+                <ContentControl x:Name="FiveMFixPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Réparer FiveM"/>
+                                <TextBlock x:Name="FiveMFixHint" Style="{StaticResource PageHint}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel x:Name="FiveMFixCards" Margin="0,0,6,0"/></ScrollViewer>
                     </DockPanel>
                 </ContentControl>
 

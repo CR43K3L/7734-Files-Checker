@@ -25,6 +25,10 @@ public sealed class AppSettings
     public string? LastRunVersion { get; set; }
     /// <summary>Analyse du disque système chaque semaine, avec une bulle « ce qui a grossi ».</summary>
     public bool WeeklyReport { get; set; } = true;
+    /// <summary>Dossier de GTA V choisi à la main (sinon lu dans CitizenFX.ini).</summary>
+    public string? GtaPath { get; set; }
+    /// <summary>Le joueur a confirmé avoir retiré son ancien pack installé à la main (tuto du premier pack).</summary>
+    public bool FiveMOldPackCleared { get; set; }
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "7734FilesChecker", "settings.json");

@@ -28,6 +28,14 @@ public partial class MainWindow
         new("health", "\uE95E", "Santé des disques"),
     };
 
+    private readonly List<NavItem> _fivemNav = new()
+    {
+        new("fivem", "\uE7FC", "Mes packs"),
+        new("fivemfix", "\uE90F", "Réparer FiveM"),
+    };
+
+    private IEnumerable<NavItem> AllNav => _nav.Concat(_fivemNav);
+
     private string _page = "analysis";
     private string? _pendingReveal;
     private IntPtr Hwnd => new WindowInteropHelper(this).Handle;
@@ -35,6 +43,7 @@ public partial class MainWindow
     private void InitPages()
     {
         NavList.ItemsSource = _nav;
+        FiveMNav.ItemsSource = _fivemNav;
         NavList.SelectedIndex = 0;
         ApplyEmptyHints();
     }
@@ -44,11 +53,18 @@ public partial class MainWindow
         if (NavList.SelectedItem is NavItem n) ShowPage(n.Key);
     }
 
+    private void FiveMNav_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (FiveMNav.SelectedItem is NavItem n) ShowPage(n.Key);
+    }
+
     private void ShowPage(string key)
     {
         _page = key;
-        var nav = _nav.First(i => i.Key == key);
-        if (NavList.SelectedItem != nav) NavList.SelectedItem = nav;
+        var nav = AllNav.First(i => i.Key == key);
+        object? main = _nav.Contains(nav) ? nav : null, five = _fivemNav.Contains(nav) ? nav : null;
+        if (NavList.SelectedItem != main) NavList.SelectedItem = main;
+        if (FiveMNav.SelectedItem != five) FiveMNav.SelectedItem = five;
         foreach (var (k, page) in Pages()) page.Visibility = k == key ? Visibility.Visible : Visibility.Collapsed;
 
         switch (key)
@@ -64,16 +80,18 @@ public partial class MainWindow
             case "space": PrepareSpace(); break;
             case "startup" when !_startupLoaded: LoadStartup(); break;
             case "history": ShowHistory(); break;
+            case "fivem": LoadFiveM(); break;
+            case "fivemfix": LoadFiveMFix(); break;
         }
     }
 
-    private NavItem Nav(string key) => _nav.First(n => n.Key == key);
+    private NavItem Nav(string key) => AllNav.First(n => n.Key == key);
 
     private IEnumerable<(string, FrameworkElement)> Pages() => new (string, FrameworkElement)[]
     {
         ("analysis", AnalysisPage), ("games", GamesPage), ("clean", CleanPage), ("dupes", DupesPage), ("old", OldPage), ("news", NewsPage),
         ("system", SystemPage), ("health", HealthPage), ("apps", AppsPage), ("caps", CapsPage), ("space", SpacePage),
-        ("startup", StartupPage), ("history", HistoryPage),
+        ("startup", StartupPage), ("history", HistoryPage), ("fivem", FiveMPage), ("fivemfix", FiveMFixPage),
     };
 
     private void ApplyEmptyHints()
