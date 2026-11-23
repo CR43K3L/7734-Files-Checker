@@ -177,6 +177,8 @@ public partial class MainWindow
             return;
         if (!EnsureFiveMClosed()) return;
 
+        if (!EnoughSpaceFor(pack)) return;
+
         _packBusy = true;
         var (win, status, bar, closeWin) = ProgressDialog($"Installation de « {pack.Name} »");
         win.Show();
@@ -238,6 +240,30 @@ public partial class MainWindow
             _packBusy = false;
             if (_page == "fivem") LoadFiveM();
         }
+    }
+
+    /// <summary>Le zip téléchargé puis ses fichiers décompressés : il faut environ deux fois la taille du pack.</summary>
+    private bool EnoughSpaceFor(PackInfo pack)
+    {
+        if (pack.Size <= 0) return true;
+        try
+        {
+            var temp = new DriveInfo(Path.GetPathRoot(Path.GetTempPath())!);
+            var game = new DriveInfo(Path.GetPathRoot(FiveMApp)!);
+            long needTemp = pack.Size + (512L << 20);
+            long needGame = pack.Size + (512L << 20);
+            bool same = temp.Name.Equals(game.Name, StringComparison.OrdinalIgnoreCase);
+            string? problem = same
+                ? (temp.AvailableFreeSpace < needTemp + needGame ? $"Il faut environ {ByteSize.Format(needTemp + needGame)} de libre sur {temp.Name.TrimEnd('\\')} (le pack téléchargé, puis ses fichiers). Il reste {ByteSize.Format(temp.AvailableFreeSpace)}." : null)
+                : temp.AvailableFreeSpace < needTemp ? $"Il faut environ {ByteSize.Format(needTemp)} de libre sur {temp.Name.TrimEnd('\\')} pour le téléchargement. Il reste {ByteSize.Format(temp.AvailableFreeSpace)}."
+                : game.AvailableFreeSpace < needGame ? $"Il faut environ {ByteSize.Format(needGame)} de libre sur {game.Name.TrimEnd('\\')} pour le pack. Il reste {ByteSize.Format(game.AvailableFreeSpace)}." : null;
+            if (problem == null) return true;
+            if (MessageBox.Show(this, $"Pas assez de place pour « {pack.Name} ».\n\n{problem}\n\nOuvrir « Faire de la place » ?", "7734 Files Checker",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+                ShowPage("space");
+            return false;
+        }
+        catch (Exception) { return true; }
     }
 
     private static string Remaining(double seconds) => seconds switch

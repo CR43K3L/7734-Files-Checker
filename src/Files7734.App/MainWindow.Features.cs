@@ -9,13 +9,12 @@ using Microsoft.Win32;
 
 namespace Files7734.App;
 
-/// <summary>Menus Fichier / Options, raccourcis clavier, résumé du disque et recherche.</summary>
+/// <summary>Commandes et réglages, raccourcis clavier, résumé du disque et recherche.</summary>
 public partial class MainWindow
 {
     private AppSettings _settings = new();
     private readonly Stack<FsNode> _childStack = new();
     private readonly Dictionary<(Key key, ModifierKeys mods), Action> _shortcuts = new();
-    private readonly Dictionary<string, MenuItem> _optionItems = new();
     private bool _loaded;
 
     private void InitFeatures()
@@ -32,99 +31,89 @@ public partial class MainWindow
 
     // ───────────── Construction des menus ─────────────
 
+    /// <summary>Une commande de l'app : affichée dans la fenêtre Réglages (si elle a une catégorie) et/ou liée à un raccourci.</summary>
+    private sealed record AppCommand(string Category, string? Key, string Header, string? Gesture, Action Action);
+    private readonly List<AppCommand> _commands = new();
+
     private void BuildMenus()
     {
-        MainMenu.Items.Clear();
-        var file = TopMenu("_Fichier");
-        Item(file, "Analyser", "F5", Rescan);
-        Item(file, "Sélectionner un dossier…", "F3", () => FolderButton_Click(this, new RoutedEventArgs()));
-        Item(file, "Sélectionner plusieurs dossiers…", "Alt+F3", SelectMultiple);
-        Item(file, "Ouvrir un fichier CSV…", "Shift+F3", OpenCsv);
-        Item(file, "Nouvelle fenêtre", "Ctrl+N", () => Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true }));
-        Sep(file);
-        Item(file, "Réinitialiser l'arborescence", "F4", ResetTree);
-        Item(file, "Tout développer", "Shift+F4", ExpandAll);
-        Item(file, "Sélectionner le parent", "F6", SelectParent);
-        Item(file, "Resélectionner l'enfant", "F7", SelectChild);
-        Item(file, "Zoomer sur la carte", "F10", ZoomIn);
-        Item(file, "Dézoomer la carte", "F11", ZoomOut);
-        Item(file, "Enregistrer la carte en PNG…", "Ctrl+S", SaveMapPng);
-        Sep(file);
-        Item(file, "Ouvrir dans l'Explorateur", "Ctrl+E", () => WithNode(n => NativeMethods.ShowInExplorer(n.FullPath)));
-        Item(file, "Invite de commandes ici", "Ctrl+P", OpenCommandPrompt);
-        Item(file, "Copier le chemin", "Ctrl+Alt+C", () => WithNode(n => Clipboard.SetText(n.FullPath)));
-        Sep(file);
-        Item(file, "Copier", "Ctrl+C", () => WithNode(n => CopyToClipboard(n, cut: false)));
-        Item(file, "Couper", "Ctrl+X", () => WithNode(n => CopyToClipboard(n, cut: true)));
-        Item(file, "Envoyer à la corbeille", "Del", () => WithNode(n => Delete(n)));
-        Item(file, "Supprimer définitivement", "Shift+Del", () => WithNode(n => Delete(n, permanent: true)));
-        Item(file, "Renommer…", "F2", () => WithNode(Rename));
-        Sep(file);
-        Item(file, "Exporter en CSV…", "Ctrl+Alt+E", ExportCsv);
-        Item(file, "Copier les infos (nom, taille…)", "Ctrl+Shift+C", () => WithNode(CopyInfo));
-        Item(file, "Exporter les types de fichiers en CSV…", "Ctrl+Alt+F", ExportTypes);
-        Sep(file);
-        Item(file, "Quitter", "Alt+F4", () => { _quitting = true; Close(); }, registerShortcut: false);
+        _commands.Clear();
+        _shortcuts.Clear();
+        // Raccourcis seulement (les mêmes actions sont dans le clic droit et la barre d'outils).
+        const string hidden = "";
+        Item(hidden, "Analyser", "F5", Rescan);
+        Item(hidden, "Sélectionner un dossier…", "F3", () => FolderButton_Click(this, new RoutedEventArgs()));
+        Item(hidden, "Réinitialiser l'arborescence", "F4", ResetTree);
+        Item(hidden, "Tout développer", "Shift+F4", ExpandAll);
+        Item(hidden, "Sélectionner le parent", "F6", SelectParent);
+        Item(hidden, "Resélectionner l'enfant", "F7", SelectChild);
+        Item(hidden, "Zoomer sur la carte", "F10", ZoomIn);
+        Item(hidden, "Dézoomer la carte", "F11", ZoomOut);
+        Item(hidden, "Ouvrir dans l'Explorateur", "Ctrl+E", () => WithNode(n => NativeMethods.ShowInExplorer(n.FullPath)));
+        Item(hidden, "Invite de commandes ici", "Ctrl+P", OpenCommandPrompt);
+        Item(hidden, "Copier le chemin", "Ctrl+Alt+C", () => WithNode(n => Clipboard.SetText(n.FullPath)));
+        Item(hidden, "Copier", "Ctrl+C", () => WithNode(n => CopyToClipboard(n, cut: false)));
+        Item(hidden, "Couper", "Ctrl+X", () => WithNode(n => CopyToClipboard(n, cut: true)));
+        Item(hidden, "Envoyer à la corbeille", "Del", () => WithNode(n => Delete(n)));
+        Item(hidden, "Supprimer définitivement", "Shift+Del", () => WithNode(n => Delete(n, permanent: true)));
+        Item(hidden, "Renommer…", "F2", () => WithNode(Rename));
+        Item(hidden, "Copier les infos (nom, taille…)", "Ctrl+Shift+C", () => WithNode(CopyInfo));
+        Item(hidden, "Filtrer / rechercher…", "Ctrl+Shift+F", () => { SearchBox.Focus(); SearchBox.SelectAll(); });
+        Item(hidden, "Ouvrir les réglages", "Ctrl+OemComma", () => ShowSettingsWindow());
 
-        var opt = TopMenu("_Options");
-        Check(opt, "theme:System", "Thème : comme Windows", null, () => SetTheme(ThemeMode.System));
-        Check(opt, "theme:Light", "Thème : clair", null, () => SetTheme(ThemeMode.Light));
-        Check(opt, "theme:Dark", "Thème : sombre", "Ctrl+T", () => SetTheme(_settings.Theme == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark));
-        Sep(opt);
-        Check(opt, "unit:Auto", "Afficher les tailles automatiquement", null, () => SetUnit(SizeUnit.Auto));
-        Check(opt, "unit:Bytes", "Afficher en octets", null, () => SetUnit(SizeUnit.Bytes));
-        Check(opt, "unit:KB", "Afficher en Ko", null, () => SetUnit(SizeUnit.KB));
-        Check(opt, "unit:MB", "Afficher en Mo", null, () => SetUnit(SizeUnit.MB));
-        Check(opt, "unit:GB", "Afficher en Go", null, () => SetUnit(SizeUnit.GB));
-        Check(opt, "unit:TB", "Afficher en To", null, () => SetUnit(SizeUnit.TB));
-        Sep(opt);
-        Item(opt, "Filtrer / rechercher…", "Ctrl+Shift+F", () => { SearchBox.Focus(); SearchBox.SelectAll(); });
-        Sep(opt);
-        Check(opt, "explorer", "Ajouter au clic droit de l'Explorateur", null, ToggleExplorer);
-        Check(opt, "admin", "Exécuter en administrateur", null, RunAsAdmin);
-        Check(opt, "autoscan", "Analyser dès qu'un disque est sélectionné", null, () => Toggle(s => s.AutoScanOnSelect = !s.AutoScanOnSelect));
-        Sep(opt);
-        Check(opt, "header", "Afficher le résumé du disque", "Ctrl+H", () => Toggle(s => s.ShowHeader = !s.ShowHeader));
-        Check(opt, "types", "Afficher les types de fichiers", "F8", () => Toggle(s => s.ShowFileTypes = !s.ShowFileTypes));
-        Check(opt, "map", "Afficher la carte", "F9", () => Toggle(s => s.ShowMap = !s.ShowMap));
-        Check(opt, "allocated", "Carte : taille sur le disque", null, () => Toggle(s => s.MapUseAllocated = !s.MapUseAllocated));
-        Check(opt, "free", "Carte : afficher l'espace libre", "Ctrl+Shift+S", () => Toggle(s => s.MapShowFreeSpace = !s.MapShowFreeSpace));
-        Check(opt, "names", "Carte : afficher les noms", "Ctrl+Shift+N", () => Toggle(s => s.MapShowNames = !s.MapShowNames));
-        Sep(opt);
-        Check(opt, "monitor", "Surveiller l'espace disque en arrière-plan", null, ToggleMonitor);
-        Check(opt, "weekly", "Résumé de la semaine (analyse auto du disque système)", null, ToggleWeekly);
-        Check(opt, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
-        Sep(opt);
-        Item(opt, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));
-        Item(opt, "Nouveautés de cette version", null, () => _ = ShowWhatsNew(welcome: false));
-        Item(opt, "Page GitHub du projet", null, () => NativeMethods.Open($"https://github.com/{GitHubRepo}"));
-        Sep(opt);
-        Item(opt, "Réinitialiser les réglages", null, ResetSettings);
+        const string look = "Apparence";
+        Check(look, "theme:System", "Comme Windows", null, () => SetTheme(ThemeMode.System));
+        Check(look, "theme:Light", "Clair", null, () => SetTheme(ThemeMode.Light));
+        Check(look, "theme:Dark", "Sombre", "Ctrl+T", () => SetTheme(_settings.Theme == ThemeMode.Dark ? ThemeMode.Light : ThemeMode.Dark));
+        Check(look, "unit:Auto", "Auto", null, () => SetUnit(SizeUnit.Auto));
+        Check(look, "unit:Bytes", "Octets", null, () => SetUnit(SizeUnit.Bytes));
+        Check(look, "unit:KB", "Ko", null, () => SetUnit(SizeUnit.KB));
+        Check(look, "unit:MB", "Mo", null, () => SetUnit(SizeUnit.MB));
+        Check(look, "unit:GB", "Go", null, () => SetUnit(SizeUnit.GB));
+        Check(look, "unit:TB", "To", null, () => SetUnit(SizeUnit.TB));
+
+        const string view = "Analyse";
+        Check(view, "autoscan", "Analyser dès qu'un disque est sélectionné", null, () => Toggle(s => s.AutoScanOnSelect = !s.AutoScanOnSelect));
+        Check(view, "header", "Afficher le résumé du disque", "Ctrl+H", () => Toggle(s => s.ShowHeader = !s.ShowHeader));
+        Check(view, "types", "Afficher les types de fichiers", "F8", () => Toggle(s => s.ShowFileTypes = !s.ShowFileTypes));
+        Check(view, "map", "Afficher la carte", "F9", () => Toggle(s => s.ShowMap = !s.ShowMap));
+        Check(view, "allocated", "Carte : taille réelle sur le disque", null, () => Toggle(s => s.MapUseAllocated = !s.MapUseAllocated));
+        Check(view, "free", "Carte : afficher l'espace libre", "Ctrl+Shift+S", () => Toggle(s => s.MapShowFreeSpace = !s.MapShowFreeSpace));
+        Check(view, "names", "Carte : afficher les noms", "Ctrl+Shift+N", () => Toggle(s => s.MapShowNames = !s.MapShowNames));
+
+        const string watch = "Surveillance";
+        Check(watch, "monitor", "Surveiller l'espace disque en arrière-plan", null, ToggleMonitor);
+        Check(watch, "weekly", "Résumé de la semaine (analyse auto du disque système)", null, ToggleWeekly);
+        Check(watch, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
+
+        const string win = "Windows";
+        Check(win, "explorer", "Ajouter « Analyser » au clic droit de l'Explorateur", null, ToggleExplorer);
+        Check(win, "admin", "Exécuter en administrateur (analyse ultra-rapide)", null, RunAsAdmin);
+
+        const string export = "Fichiers et export";
+        Item(export, "Analyser plusieurs dossiers…", "Alt+F3", SelectMultiple);
+        Item(export, "Ouvrir une analyse enregistrée (CSV)…", "Shift+F3", OpenCsv);
+        Item(export, "Exporter l'analyse en CSV…", "Ctrl+Alt+E", ExportCsv);
+        Item(export, "Exporter les types de fichiers en CSV…", "Ctrl+Alt+F", ExportTypes);
+        Item(export, "Enregistrer la carte en PNG…", "Ctrl+S", SaveMapPng);
+        Item(export, "Ouvrir une nouvelle fenêtre", "Ctrl+N", () => Process.Start(new ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = true }));
+
+        const string about = "À propos";
+        Item(about, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));
+        Item(about, "Nouveautés de cette version", null, () => _ = ShowWhatsNew(welcome: false));
+        Item(about, "Page GitHub du projet", null, () => NativeMethods.Open($"https://github.com/{GitHubRepo}"));
+        Item(about, "Réinitialiser les réglages", null, ResetSettings);
     }
 
-    private MenuItem TopMenu(string header)
+    private void Item(string category, string header, string? gesture, Action action, bool registerShortcut = true)
     {
-        var m = new MenuItem { Header = header };
-        MainMenu.Items.Add(m);
-        return m;
-    }
-
-    private static void Sep(MenuItem parent) => parent.Items.Add(new Separator());
-
-    private void Item(MenuItem parent, string header, string? gesture, Action action, bool registerShortcut = true)
-    {
-        var item = new MenuItem { Header = header, InputGestureText = gesture ?? "" };
-        item.Click += (_, _) => Safe(action);
-        parent.Items.Add(item);
+        _commands.Add(new AppCommand(category, null, header, gesture, action));
         if (gesture != null && registerShortcut) _shortcuts[ParseGesture(gesture)] = action;
     }
 
-    private void Check(MenuItem parent, string key, string header, string? gesture, Action action)
+    private void Check(string category, string key, string header, string? gesture, Action action)
     {
-        var item = new MenuItem { Header = header, InputGestureText = gesture ?? "" };
-        item.Click += (_, _) => Safe(action);
-        parent.Items.Add(item);
-        _optionItems[key] = item;
+        _commands.Add(new AppCommand(category, key, header, gesture, action));
         if (gesture != null) _shortcuts[ParseGesture(gesture)] = action;
     }
 
@@ -437,12 +426,7 @@ public partial class MainWindow
         ApplyViewOptions();
     }
 
-    /// <summary>Applique les réglages à l'interface et met à jour les coches des menus.</summary>
-    private void ApplyViewOptions()
-    {
-        foreach (var (key, item) in _optionItems)
-        {
-            item.IsChecked = key switch
+    private bool OptionState(string key) => key switch
             {
                 "theme:System" => _settings.Theme == ThemeMode.System,
                 "theme:Light" => _settings.Theme == ThemeMode.Light,
@@ -467,7 +451,11 @@ public partial class MainWindow
                 "startup" => _settings.StartWithWindows,
                 _ => false,
             };
-        }
+
+    /// <summary>Applique les réglages à l'interface (et à la fenêtre Réglages si elle est ouverte).</summary>
+    private void ApplyViewOptions()
+    {
+        _settingsRefresh?.Invoke();
 
         DriveStats.Visibility = _settings.ShowHeader && _driveFree != null ? Visibility.Visible : Visibility.Collapsed;
 

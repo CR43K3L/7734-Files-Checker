@@ -18,7 +18,7 @@
         <!-- ═════════ Barre latérale (translucide sous Windows 11) ═════════ -->
         <DockPanel Grid.Column="0" Margin="12,0,10,14">
             <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="6,18,0,22">
-                <Image Source="app.ico" Width="28" Height="28" Margin="0,0,10,0"/>
+                <Image Source="logo.png" Width="30" Height="30" Margin="0,0,10,0" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <StackPanel VerticalAlignment="Center">
                     <TextBlock Text="7734 Files Checker" FontSize="14" FontWeight="SemiBold"/>
                     <TextBlock Text="Analyseur d'espace disque" Foreground="{DynamicResource MutedBrush}" FontSize="11"/>
@@ -148,7 +148,13 @@
                         <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Agrandir"/>
                         <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Fermer"/>
                     </StackPanel>
-                    <Menu x:Name="MainMenu" Margin="-10,8,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Style="{StaticResource PlainButton}" Margin="0,10,0,0" VerticalAlignment="Top" HorizontalAlignment="Left" Click="Settings_Click"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="Réglages (Ctrl+,)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="Réglages"/>
+                        </StackPanel>
+                    </Button>
                 </DockPanel>
 
                 <!-- Barre d'outils (sert aussi de barre de titre) -->

@@ -23,6 +23,7 @@
   </ItemGroup>
   <ItemGroup>
     <Resource Include="app.ico" />
+    <Resource Include="logo.png" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Files7734.Core\Files7734.Core.csproj" />
