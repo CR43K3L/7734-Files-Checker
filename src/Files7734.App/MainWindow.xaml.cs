@@ -60,6 +60,7 @@ public partial class MainWindow : Window
         InitFeatures();
         InitPages();
         InitTray();
+        InitHistory();
         InitUpdates();
 
         // Un chemin passé en argument (clic droit dans l'Explorateur, glisser un dossier sur l'exe) est analysé directement.

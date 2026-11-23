@@ -201,3 +201,31 @@ public sealed class SpaceRow : CheckRow
     public Brush StateBrush => (Brush)Application.Current.Resources[_error ? "WarningTextBrush" : "SuccessBrush"];
     public void SetState(string text, bool error = false, bool done = false) { _state = text; _error = error; Done |= done; RefreshAll(); }
 }
+
+public sealed class StartupRow : CheckRow
+{
+    public StartupRow(string name, string command, string location, string? publisher, bool needsAdmin, Func<string, bool, bool> setEnabled)
+    {
+        Name = name; Command = command; Location = location; Publisher = publisher ?? ""; NeedsAdmin = needsAdmin; _set = setEnabled;
+        (Verdict, Why) = StartupAdvice.For(name, command);
+    }
+    private readonly Func<string, bool, bool> _set;
+    public string Name { get; }
+    public string Command { get; }
+    public string Location { get; }
+    public string Publisher { get; }
+    public bool NeedsAdmin { get; }
+    public bool Writable { get; set; } = true;
+    public StartupVerdict Verdict { get; }
+    public string Why { get; }
+    public override bool CanCheck => Writable;
+    public string AdviceText => Verdict switch
+    {
+        StartupVerdict.Keep => Why,
+        StartupVerdict.CanDisable => "Peut être désactivé. " + Why,
+        _ => "Inconnu : laisse-le si tu ne sais pas ce que c'est.",
+    };
+    public Brush AdviceBrush => ExtensionColors.BrushOf(Verdict switch { StartupVerdict.Keep => 0xFF32D74Bu, StartupVerdict.CanDisable => 0xFFFF9F0Au, _ => 0xFF8E8E93u });
+    /// <summary>Applique le changement ; renvoie false si Windows a refusé.</summary>
+    public bool Apply(bool enabled) => _set(Name, enabled);
+}

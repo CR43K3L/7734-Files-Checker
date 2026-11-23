@@ -20,7 +20,9 @@ public partial class MainWindow
         new("dupes", "", "Doublons"),
         new("old", "", "Vieux fichiers"),
         new("news", "", "Nouveautés"),
+        new("history", "\uE9D9", "Historique"),
         new("apps", "\uE71D", "Applications"),
+        new("startup", "\uE7E8", "Démarrage"),
         new("caps", "\uE722", "Captures et clips"),
         new("system", "\uE770", "Fichiers Windows"),
         new("health", "\uE95E", "Santé des disques"),
@@ -60,6 +62,8 @@ public partial class MainWindow
             case "apps" when !_appsLoaded: LoadApps(); break;
             case "caps" when !_capsLoaded: LoadCaptures(); break;
             case "space": PrepareSpace(); break;
+            case "startup" when !_startupLoaded: LoadStartup(); break;
+            case "history": ShowHistory(); break;
         }
     }
 
@@ -69,6 +73,7 @@ public partial class MainWindow
     {
         ("analysis", AnalysisPage), ("games", GamesPage), ("clean", CleanPage), ("dupes", DupesPage), ("old", OldPage), ("news", NewsPage),
         ("system", SystemPage), ("health", HealthPage), ("apps", AppsPage), ("caps", CapsPage), ("space", SpacePage),
+        ("startup", StartupPage), ("history", HistoryPage),
     };
 
     private void ApplyEmptyHints()
@@ -102,6 +107,7 @@ public partial class MainWindow
         else OldHint.Text = "Gros fichiers que personne n'a modifiés depuis longtemps.";
         if (_games != null) _ = ComputeGameSizes();
         if (!root.IsVirtual && Directory.Exists(path)) UpdateSnapshot(root);
+        RecordSpace();
 
         if (_pendingReveal != null)
         {

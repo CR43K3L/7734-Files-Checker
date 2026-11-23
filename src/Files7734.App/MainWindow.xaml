@@ -923,6 +923,51 @@
                     </DockPanel>
                 </ContentControl>
 
+
+                <!-- ═════════ Page : Démarrage ═════════ -->
+                <ContentControl x:Name="StartupPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,10" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                                <Button x:Name="StartupSafe" Style="{StaticResource PlainButton}" Click="StartupSafe_Click" Margin="8,0,0,0" Content="Désactiver les inutiles"/>
+                                <Button x:Name="StartupRefresh" Style="{StaticResource PlainButton}" Click="StartupRefresh_Click" Margin="8,0,0,0" Content="Actualiser"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Programmes au démarrage"/>
+                                <TextBlock x:Name="StartupHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Lecture…"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ListView x:Name="StartupList" SelectionMode="Single">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="Actif" Width="60"><GridViewColumn.CellTemplate><DataTemplate><CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}" IsEnabled="{Binding CanCheck}" Margin="8,0,0,0"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Programme" Width="300"><GridViewColumn.CellTemplate><DataTemplate><StackPanel Margin="0,2"><TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Publisher}" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Conseil" Width="360"><GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal"><Border Width="8" Height="8" CornerRadius="4" Background="{Binding AdviceBrush}" Margin="0,0,8,0" VerticalAlignment="Center"/><TextBlock Text="{Binding AdviceText}" TextWrapping="Wrap" MaxWidth="330"/></StackPanel></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Lancé depuis" Width="150"><GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Location}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                    <GridViewColumn Header="Commande" Width="380"><GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding Command}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Command}"/></DataTemplate></GridViewColumn.CellTemplate></GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </DockPanel>
+                </ContentControl>
+
+                <!-- ═════════ Page : Historique ═════════ -->
+                <ContentControl x:Name="HistoryPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,14" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,12">
+                            <Border DockPanel.Dock="Right" Style="{StaticResource SegmentHost}" VerticalAlignment="Top"><StackPanel x:Name="HistoryDrives" Orientation="Horizontal"/></Border>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Évolution de l'espace disque"/>
+                                <TextBlock x:Name="HistoryHint" Style="{StaticResource PageHint}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <WrapPanel x:Name="HistoryStats" DockPanel.Dock="Top" Margin="0,0,0,12"/>
+                        <Border CornerRadius="12" Background="{DynamicResource ContentBrush}" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1" Padding="10">
+                            <Canvas x:Name="HistoryChart" ClipToBounds="True" SizeChanged="HistoryChart_SizeChanged"/>
+                        </Border>
+                    </DockPanel>
+                </ContentControl>
+
                 <DockPanel Grid.Row="3" Margin="4,12,4,0">
                     <TextBlock x:Name="StatusText" Foreground="{DynamicResource MutedBrush}" FontSize="11.5" TextTrimming="CharacterEllipsis"
                                Text="Prêt."/>

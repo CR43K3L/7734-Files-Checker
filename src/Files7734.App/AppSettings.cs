@@ -23,6 +23,8 @@ public sealed class AppSettings
     public string? KnownLatestTag { get; set; }
     public string? SkippedUpdateTag { get; set; }
     public string? LastRunVersion { get; set; }
+    /// <summary>Analyse du disque système chaque semaine, avec une bulle « ce qui a grossi ».</summary>
+    public bool WeeklyReport { get; set; } = true;
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "7734FilesChecker", "settings.json");

@@ -102,3 +102,37 @@ public class UpdateInfoTests
         Assert.Equal(new Version(1, 0, 0), v);
     }
 }
+
+public class StartupAndHistoryTests
+{
+    [Fact]
+    public void AdviceAndApprovedState()
+    {
+        Assert.Equal(StartupVerdict.CanDisable, StartupAdvice.For("Discord", @"C:\Users\a\AppData\Local\Discord\Update.exe --processStart Discord.exe").Verdict);
+        Assert.Equal(StartupVerdict.Keep, StartupAdvice.For("SecurityHealth", @"%windir%\system32\SecurityHealthSystray.exe").Verdict);
+        Assert.Equal(StartupVerdict.Unknown, StartupAdvice.For("MonOutil", @"C:\outil.exe").Verdict);
+        Assert.True(StartupAdvice.IsEnabled(null));
+        Assert.True(StartupAdvice.IsEnabled(new byte[] { 2, 0, 0, 0 }));
+        Assert.True(StartupAdvice.IsEnabled(new byte[] { 6, 0, 0, 0 }));
+        Assert.False(StartupAdvice.IsEnabled(new byte[] { 3, 0, 0, 0 }));
+        Assert.False(StartupAdvice.IsEnabled(StartupAdvice.ApprovedValue(false, DateTime.UtcNow)));
+        Assert.True(StartupAdvice.IsEnabled(StartupAdvice.ApprovedValue(true, DateTime.UtcNow)));
+    }
+
+    [Fact]
+    public void HistoryPredictsFullDisk()
+    {
+        var h = new SpaceHistory();
+        var start = new DateTime(2026, 1, 1);
+        const long G = 1L << 30;
+        for (int d = 0; d <= 30; d++) h.Record("C:", start.AddDays(d), 500 * G, (200 - d) * G); // 1 Go de plus par jour
+        h.Record("C:", start.AddDays(30).AddHours(5), 500 * G, 170 * G); // même jour : remplacé
+        Assert.Equal(31, h.Drives["C:"].Count);
+        Assert.Equal(G, h.DailyGrowth("C:")!.Value, 1e6);
+        Assert.Equal(170, h.DaysUntilFull("C:")!.Value, 0.5);
+        string file = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
+        h.Save(file);
+        Assert.Equal(31, SpaceHistory.Load(file).Drives["c:"].Count);
+        File.Delete(file);
+    }
+}

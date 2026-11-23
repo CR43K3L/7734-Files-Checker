@@ -92,6 +92,7 @@ public partial class MainWindow
         Check(opt, "names", "Carte : afficher les noms", "Ctrl+Shift+N", () => Toggle(s => s.MapShowNames = !s.MapShowNames));
         Sep(opt);
         Check(opt, "monitor", "Surveiller l'espace disque en arrière-plan", null, ToggleMonitor);
+        Check(opt, "weekly", "Résumé de la semaine (analyse auto du disque système)", null, ToggleWeekly);
         Check(opt, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
         Sep(opt);
         Item(opt, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));
@@ -462,6 +463,7 @@ public partial class MainWindow
                 "free" => _settings.MapShowFreeSpace,
                 "names" => _settings.MapShowNames,
                 "monitor" => _settings.MonitorDisks,
+                "weekly" => _settings.WeeklyReport,
                 "startup" => _settings.StartWithWindows,
                 _ => false,
             };
