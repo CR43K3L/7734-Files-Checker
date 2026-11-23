@@ -412,6 +412,12 @@ public partial class MainWindow : Window
         Add("", "Afficher dans l'Explorateur", () => NativeMethods.ShowInExplorer(path));
         Add("", "Copier le chemin", () => Clipboard.SetText(path));
         if (node.IsDirectory) Add("", "Analyser ce dossier seul", () => StartScan(path));
+        if (!node.IsDirectory)
+        {
+            menu.Items.Add(new Separator());
+            Add("\uEA18", "Ce fichier est-il sûr ?…", () => new FileCheckWindow(this, path).ShowDialog());
+            Add("\uE774", "Rechercher sur Internet", () => NativeMethods.Open(FileSafety.WebSearchUrl(node.Name)));
+        }
         menu.Items.Add(new Separator());
         Add("", "Copier", () => CopyToClipboard(node, cut: false));
         Add("", "Couper", () => CopyToClipboard(node, cut: true));

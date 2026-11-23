@@ -19,6 +19,8 @@ public partial class MainWindow
         new("dupes", "", "Doublons"),
         new("old", "", "Vieux fichiers"),
         new("news", "", "Nouveautés"),
+        new("system", "\uE770", "Fichiers Windows"),
+        new("health", "\uE95E", "Santé des disques"),
     };
 
     private string _page = "analysis";
@@ -48,6 +50,8 @@ public partial class MainWindow
         DupesPage.Visibility = key == "dupes" ? Visibility.Visible : Visibility.Collapsed;
         OldPage.Visibility = key == "old" ? Visibility.Visible : Visibility.Collapsed;
         NewsPage.Visibility = key == "news" ? Visibility.Visible : Visibility.Collapsed;
+        SystemPage.Visibility = key == "system" ? Visibility.Visible : Visibility.Collapsed;
+        HealthPage.Visibility = key == "health" ? Visibility.Visible : Visibility.Collapsed;
 
         switch (key)
         {
@@ -55,6 +59,8 @@ public partial class MainWindow
             case "clean" when _clean.Count == 0: MeasureCleanup(); break;
             case "old" when _oldDirty: RefreshOld(); break;
             case "news": _nav[5].Badge = ""; break;
+            case "system" when !_systemLoaded: LoadSystemFiles(); break;
+            case "health" when !_healthLoaded: LoadHealth(); break;
         }
     }
 
@@ -629,5 +635,72 @@ public partial class MainWindow
                 Breadcrumb.Children.Add(b);
             }
         }
+    }
+}
+
+/// <summary>Surbrillance d'un type de fichier sur la carte.</summary>
+public partial class MainWindow
+{
+    private void ExtList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        string? ext = (ExtList.SelectedItem as ExtensionRow)?.Stat.Extension;
+        Map.HighlightExtension = ext;
+        ClearHighlight.Visibility = ext != null ? Visibility.Visible : Visibility.Collapsed;
+        if (ext != null && ExtList.SelectedItem is ExtensionRow row)
+        {
+            ClearHighlightText.Text = $"{row.Name} · {row.SizeText} · tout afficher";
+            StatusText.Text = $"Carte : seuls les fichiers {row.Name} sont en couleur ({row.CountText} fichiers, {row.SizeText}).";
+        }
+        Map.Render();
+    }
+
+    private void ClearHighlight_Click(object sender, RoutedEventArgs e) => ExtList.SelectedItem = null;
+}
+
+/// <summary>Aperçu (miniature de l'Explorateur) dans les pages Doublons et Vieux fichiers.</summary>
+public partial class MainWindow
+{
+    private int _previewVersion;
+
+    private FsNode? PreviewNode(string prefix) => prefix == "Dupes"
+        ? (DupesList.SelectedItem as DupeRow)?.File
+        : (OldList.SelectedItem as OldFileRow)?.Node;
+
+    private async void PreviewList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        string prefix = sender == DupesList ? "Dupes" : "Old";
+        var image = prefix == "Dupes" ? DupesPreviewImage : OldPreviewImage;
+        var empty = prefix == "Dupes" ? DupesPreviewEmpty : OldPreviewEmpty;
+        var name = prefix == "Dupes" ? DupesPreviewName : OldPreviewName;
+        var info = prefix == "Dupes" ? DupesPreviewInfo : OldPreviewInfo;
+        var node = PreviewNode(prefix);
+        int version = ++_previewVersion;
+        image.Source = null;
+        if (node == null)
+        {
+            empty.Text = "Sélectionne un fichier";
+            empty.Visibility = Visibility.Visible;
+            name.Text = info.Text = "";
+            return;
+        }
+        name.Text = node.Name;
+        info.Text = $"{ByteSize.Format(node.Size)} · modifié le {Fmt.Date(node.LastModifiedUtc)}\n{node.Parent?.FullPath}";
+        empty.Text = "Chargement…";
+        empty.Visibility = Visibility.Visible;
+        var thumb = await SystemTools.ThumbnailAsync(node.FullPath, 400);
+        if (version != _previewVersion) return;
+        image.Source = thumb;
+        empty.Text = "Pas d'aperçu pour ce fichier";
+        empty.Visibility = thumb == null ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void PreviewOpen_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string p } && PreviewNode(p) is { } n) Safe(() => NativeMethods.Open(n.FullPath));
+    }
+
+    private void PreviewReveal_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { Tag: string p } && PreviewNode(p) is { } n) Safe(() => NativeMethods.ShowInExplorer(n.FullPath));
     }
 }

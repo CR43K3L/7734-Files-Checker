@@ -130,6 +130,9 @@ public sealed class TreemapView : Grid
     /// <summary>Affiche les noms sur les rectangles assez grands.</summary>
     public bool ShowNames { get; set; } = true;
 
+    /// <summary>Si renseigné, seuls les fichiers de cette extension restent en couleur.</summary>
+    public string? HighlightExtension { get; set; }
+
     /// <summary>Si renseigné, un bloc « Espace libre » de cette taille est ajouté à la carte.</summary>
     public long? FreeSpaceBytes { get; set; }
 
@@ -175,12 +178,13 @@ public sealed class TreemapView : Grid
 
         bool useAllocated = UseAllocated;
         bool dark = Theme.IsDark;
+        string? highlight = HighlightExtension;
         FsNode? freeNode = null;
         var layoutRoot = FreeSpaceBytes is long free && free > 0 ? FsTree.CreateFreeSpaceView(root, free, out freeNode) : root;
         var (pixels, rects) = await Task.Run(() =>
         {
             var r = TreemapLayout.Layout(layoutRoot, pw, ph, useAllocated: useAllocated);
-            return (Paint(r, pw, ph, dark), r);
+            return (Paint(r, pw, ph, dark, highlight), r);
         });
         if (version != _version) return; // un rendu plus récent a été demandé entre-temps
 
@@ -192,7 +196,8 @@ public sealed class TreemapView : Grid
         _freeNode = freeNode;
         _scaleX = dpi.DpiScaleX;
         _scaleY = dpi.DpiScaleY;
-        _labels.Update(ShowNames ? rects : null, _scaleX, _scaleY, dpi.PixelsPerDip);
+        var labelRects = highlight == null ? rects : rects.Where(r => !r.IsLeaf || (!r.Node.IsDirectory && r.Node.Extension == highlight)).ToList();
+        _labels.Update(ShowNames ? labelRects : null, _scaleX, _scaleY, dpi.PixelsPerDip);
         _hover.Visibility = Visibility.Collapsed;
         UpdateSelection();
         var zoom = _pendingZoom;
@@ -238,7 +243,7 @@ public sealed class TreemapView : Grid
         _overlay.BeginAnimation(OpacityProperty, fade);
     }
 
-    private static int[] Paint(List<TreemapRect> rects, int w, int h, bool dark)
+    private static int[] Paint(List<TreemapRect> rects, int w, int h, bool dark, string? highlight = null)
     {
         var px = new int[w * h];
         // fond transparent : le verre reste visible entre les rectangles
@@ -271,6 +276,13 @@ public sealed class TreemapView : Grid
                 continue;
             }
             uint baseColor = ExtensionColors.ColorOf(r.Node);
+            if (highlight != null && (r.Node.IsDirectory || r.Node.Extension != highlight))
+            {
+                // Mode surbrillance : les autres fichiers deviennent presque transparents.
+                uint bgc = dark ? 0xFF2C2C2Eu : 0xFFE5E5EAu;
+                uint Mix(int shift) => (uint)((((baseColor >> shift) & 0xFF) * 15 + ((bgc >> shift) & 0xFF) * 85) / 100) << shift;
+                baseColor = 0xFF000000 | Mix(16) | Mix(8) | Mix(0);
+            }
             int br = (int)((baseColor >> 16) & 0xFF), bg = (int)((baseColor >> 8) & 0xFF), bb = (int)(baseColor & 0xFF);
             double rw = Math.Max(1, x1 - x0), rh = Math.Max(1, y1 - y0);
 

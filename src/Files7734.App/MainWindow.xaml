@@ -241,7 +241,7 @@
                     <ContentControl x:Name="SideCard" Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}" Padding="0,0,0,8">
                         <TabControl>
                             <TabItem Header="Types">
-                                <ListView x:Name="ExtList" SelectionMode="Single">
+                                <ListView x:Name="ExtList" SelectionMode="Single" SelectionChanged="ExtList_SelectionChanged" ToolTip="Clique sur un type pour le voir sur la carte">
                                     <ListView.View>
                                         <GridView>
                                             <GridViewColumn Header="Extension" Width="120">
@@ -358,6 +358,13 @@
                     <ContentControl x:Name="MapCard" Grid.Row="2" Grid.ColumnSpan="3" Style="{StaticResource Card}" Padding="12,10,12,12">
                         <DockPanel>
                             <DockPanel DockPanel.Dock="Top" Margin="4,0,0,10">
+                                <Button DockPanel.Dock="Right" x:Name="ClearHighlight" Style="{StaticResource PlainButton}" Padding="12,5" Margin="0,0,8,0"
+                                        Click="ClearHighlight_Click" Visibility="Collapsed" ToolTip="Afficher à nouveau tous les fichiers">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="&#xE711;" FontFamily="{StaticResource IconFont}" FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                        <TextBlock x:Name="ClearHighlightText" Text="Tout afficher" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
                                 <Button DockPanel.Dock="Right" x:Name="UpButton" Style="{StaticResource PlainButton}" Padding="12,5"
                                         Click="UpButton_Click" IsEnabled="False" ToolTip="Revenir au dossier parent">
                                     <StackPanel Orientation="Horizontal">
@@ -415,10 +422,11 @@
                                     <GridViewColumn Header="Dossier" Width="330">
                                         <GridViewColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding InstallPath}" Foreground="{DynamicResource MutedBrush}" TextTrimming="CharacterEllipsis"/></DataTemplate></GridViewColumn.CellTemplate>
                                     </GridViewColumn>
-                                    <GridViewColumn Header="" Width="250">
+                                    <GridViewColumn Header="" Width="330">
                                         <GridViewColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal">
                                             <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameOpen_Click" Tag="{Binding}" Content="Ouvrir"/>
                                             <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameReveal_Click" Tag="{Binding}" Content="Voir dans l'analyse"/>
+                                            <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameMove_Click" Tag="{Binding}" Content="Déplacer"/>
                                             <Button Style="{StaticResource LinkButton}" Padding="6,2" Click="GameUninstall_Click" Tag="{Binding}" Content="Désinstaller"/>
                                         </StackPanel></DataTemplate></GridViewColumn.CellTemplate>
                                     </GridViewColumn>
@@ -511,7 +519,26 @@
                             </StackPanel>
                         </DockPanel>
                         <ProgressBar x:Name="DupesProgress" DockPanel.Dock="Top" Minimum="0" Maximum="1" Margin="0,0,0,10" Visibility="Collapsed"/>
-                        <ListView x:Name="DupesList" SelectionMode="Single" MouseDoubleClick="PageList_MouseDoubleClick">
+                        <Border DockPanel.Dock="Right" Width="250" Margin="14,0,0,0" CornerRadius="12" Padding="12" Background="{DynamicResource ContentBrush}"
+                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="Aperçu" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <Border Height="200" CornerRadius="8" Background="{DynamicResource TrackBrush}" ClipToBounds="True">
+                                    <Grid>
+                                        <TextBlock x:Name="DupesPreviewEmpty" Text="Sélectionne un fichier" Foreground="{DynamicResource FaintBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="10"/>
+                                        <Image x:Name="DupesPreviewImage" Stretch="Uniform" Margin="4"/>
+                                    </Grid>
+                                </Border>
+                                <TextBlock x:Name="DupesPreviewName" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,2"/>
+                                <TextBlock x:Name="DupesPreviewInfo" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                <WrapPanel Margin="-10,8,0,0">
+                                    <Button Style="{StaticResource LinkButton}" Content="Ouvrir" Click="PreviewOpen_Click" Tag="Dupes"/>
+                                    <Button Style="{StaticResource LinkButton}" Content="Dans l'Explorateur" Click="PreviewReveal_Click" Tag="Dupes"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                        <ListView x:Name="DupesList" SelectionMode="Single" SelectionChanged="PreviewList_SelectionChanged" MouseDoubleClick="PageList_MouseDoubleClick">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="" Width="40">
@@ -566,7 +593,26 @@
                             </StackPanel>
                         </DockPanel>
 
-                        <ListView x:Name="OldList" SelectionMode="Single" MouseDoubleClick="PageList_MouseDoubleClick">
+                        <Border DockPanel.Dock="Right" Width="250" Margin="14,0,0,0" CornerRadius="12" Padding="12" Background="{DynamicResource ContentBrush}"
+                                BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="Aperçu" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <Border Height="200" CornerRadius="8" Background="{DynamicResource TrackBrush}" ClipToBounds="True">
+                                    <Grid>
+                                        <TextBlock x:Name="OldPreviewEmpty" Text="Sélectionne un fichier" Foreground="{DynamicResource FaintBrush}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="10"/>
+                                        <Image x:Name="OldPreviewImage" Stretch="Uniform" Margin="4"/>
+                                    </Grid>
+                                </Border>
+                                <TextBlock x:Name="OldPreviewName" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,10,0,2"/>
+                                <TextBlock x:Name="OldPreviewInfo" Foreground="{DynamicResource MutedBrush}" FontSize="12" TextWrapping="Wrap"/>
+                                <WrapPanel Margin="-10,8,0,0">
+                                    <Button Style="{StaticResource LinkButton}" Content="Ouvrir" Click="PreviewOpen_Click" Tag="Old"/>
+                                    <Button Style="{StaticResource LinkButton}" Content="Dans l'Explorateur" Click="PreviewReveal_Click" Tag="Old"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                        <ListView x:Name="OldList" SelectionMode="Single" SelectionChanged="PreviewList_SelectionChanged" MouseDoubleClick="PageList_MouseDoubleClick">
                             <ListView.View>
                                 <GridView>
                                     <GridViewColumn Header="" Width="40">
@@ -629,6 +675,48 @@
                                 </GridView>
                             </ListView.View>
                         </ListView>
+                    </DockPanel>
+                </ContentControl>
+
+
+                <!-- ═════════ Page : Fichiers cachés de Windows ═════════ -->
+                <ContentControl x:Name="SystemPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,14" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
+                            <Button DockPanel.Dock="Right" x:Name="SystemRefresh" Style="{StaticResource PlainButton}" Click="SystemRefresh_Click" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock Text="Actualiser"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Fichiers cachés de Windows"/>
+                                <TextBlock x:Name="SystemHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="Windows garde de gros fichiers invisibles. Voici leur taille et comment les réduire sans risque."/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="SystemCards"/>
+                        </ScrollViewer>
+                    </DockPanel>
+                </ContentControl>
+                <!-- ═════════ Page : Santé des disques ═════════ -->
+                <ContentControl x:Name="HealthPage" Grid.Row="2" Style="{StaticResource Card}" Padding="20,16,20,14" Visibility="Collapsed">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,14">
+                            <Button DockPanel.Dock="Right" x:Name="HealthRefresh" Style="{StaticResource PlainButton}" Click="HealthRefresh_Click" VerticalAlignment="Top">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFont}" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                                    <TextBlock Text="Actualiser"/>
+                                </StackPanel>
+                            </Button>
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource PageTitle}" Text="Santé des disques"/>
+                                <TextBlock x:Name="HealthHint" Style="{StaticResource PageHint}" Margin="0,3,0,0" Text="État, température et usure de tes disques, lus directement auprès de Windows."/>
+                            </StackPanel>
+                        </DockPanel>
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="HealthCards"/>
+                        </ScrollViewer>
                     </DockPanel>
                 </ContentControl>
 
