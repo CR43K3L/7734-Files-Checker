@@ -95,6 +95,7 @@ public partial class MainWindow
         Check(opt, "startup", "Démarrer avec Windows (dans la zone de notification)", null, ToggleStartup);
         Sep(opt);
         Item(opt, "Rechercher les mises à jour", null, () => _ = CheckForUpdates(manual: true));
+        Item(opt, "Nouveautés de cette version", null, () => _ = ShowWhatsNew(welcome: false));
         Item(opt, "Page GitHub du projet", null, () => NativeMethods.Open($"https://github.com/{GitHubRepo}"));
         Sep(opt);
         Item(opt, "Réinitialiser les réglages", null, ResetSettings);

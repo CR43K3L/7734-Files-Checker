@@ -21,6 +21,8 @@ public sealed class AppSettings
     public bool TrayHintShown { get; set; }
     public DateTime LastUpdateCheckUtc { get; set; }
     public string? KnownLatestTag { get; set; }
+    public string? SkippedUpdateTag { get; set; }
+    public string? LastRunVersion { get; set; }
 
     private static string FilePath =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "7734FilesChecker", "settings.json");
